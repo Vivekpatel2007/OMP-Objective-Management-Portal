@@ -2,13 +2,31 @@
 
 import { createClient } from "@/lib/supabase/client";
 
-const supabase = createClient();
+export async function login(
+  email: string,
+  password: string
+) {
+  try {
+    const supabase = createClient();
 
-export async function login(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  return { data, error };
+    console.log(data);
+    console.log(error);
+
+    return { data, error };
+  } catch (err) {
+    console.log(err);
+
+    return {
+      data: null,
+      error: {
+        message: "Failed to connect to Supabase",
+      },
+    };
+  }
 }
