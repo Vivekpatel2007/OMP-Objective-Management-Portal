@@ -10,352 +10,583 @@ import {
   submitGoalSheet,
 } from "@/services/goalservice";
 
+import {
+  getEmployeeSharedGoals,
+  updateSharedWeightage,
+} from "@/services/sharedgoalservice";
+
 export default function EmployeeGoalsPage() {
-  const [goals, setGoals] =
-    useState<any[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [goals,setGoals]=
+  useState<any[]>([]);
 
-  const [locked, setLocked] =
-    useState(false);
+  const[
+    sharedGoals,
+    setSharedGoals,
+  ]=
+  useState<any[]>([]);
 
-  const [
+  const[
+    loading,
+    setLoading,
+  ]=
+  useState(true);
+
+  const[
+    locked,
+    setLocked,
+  ]=
+  useState(false);
+
+  const[
     submissionStatus,
     setSubmissionStatus,
-  ] = useState("draft");
+  ]=
+  useState("draft");
 
-  async function fetchGoals() {
-    setLoading(true);
+  async function fetchGoals(){
 
-    const response =
-      await getGoals();
+    setLoading(
+      true
+    );
 
-    console.log(response);
+    const response=
+    await getGoals();
 
-    if (response.data) {
+    if(
+      response.data
+    ){
+
       setGoals(
         response.data
       );
+
     }
 
     setLocked(
-      response.locked ||
-        false
+      response.locked||
+      false
     );
 
     setSubmissionStatus(
-      response.submissionStatus ||
-        "draft"
+      response.submissionStatus||
+      "draft"
     );
 
-    setLoading(false);
+    const shared=
+    await getEmployeeSharedGoals();
+
+    setSharedGoals(
+      shared.data||
+      []
+    );
+
+    setLoading(
+      false
+    );
+
   }
 
-  useEffect(() => {
+  useEffect(()=>{
+
     fetchGoals();
-  }, []);
+
+  },[]);
+
+  async function saveWeight(
+    goal:any
+  ){
+
+    await updateSharedWeightage(
+
+      goal.id,
+
+      goal.weightage
+
+    );
+
+    alert(
+      "Weightage updated"
+    );
+
+    fetchGoals();
+
+  }
 
   async function handleDelete(
-    id: string
-  ) {
-    if (locked) {
-      alert(
-        "Goal sheet locked"
-      );
+    id:string
+  ){
 
-      return;
-    }
-
-    const confirmed =
-      confirm(
-        "Delete goal?"
-      );
-
-    if (
-      !confirmed
-    )
-      return;
-
-    const response =
-      await deleteGoal(
-        id
-      );
-
-    console.log(
-      response
-    );
-
-    if (
-      response.error
-    ) {
-      alert(
-        response.error
-      );
-
-      return;
-    }
-
-    alert(
-      "Goal deleted"
-    );
-
-    fetchGoals();
-  }
-
-  async function handleSubmitGoalSheet() {
-    if (
+    if(
       locked
-    ) {
+    ){
+
       alert(
         "Goal sheet locked"
       );
 
       return;
+
     }
 
-    const confirmed =
-      confirm(
-        "Submit goal sheet?"
-      );
-
-    if (
-      !confirmed
-    )
-      return;
-
-    const response =
-      await submitGoalSheet();
-
-    console.log(
-      response
-    );
-
-    if (
-      response?.error
-    ) {
-      alert(
-        response.error
-      );
-
-      return;
-    }
-
-    alert(
-      "Goal sheet submitted"
+    await deleteGoal(
+      id
     );
 
     fetchGoals();
+
   }
 
-  if (
+  async function handleSubmitGoalSheet(){
+
+    if(
+      locked
+    ){
+
+      alert(
+        "Goal sheet locked"
+      );
+
+      return;
+
+    }
+
+    await submitGoalSheet();
+
+    fetchGoals();
+
+  }
+
+  if(
     loading
-  ) {
-    return (
-      <div className="p-6">
-        Loading goals...
+  ){
+
+    return(
+
+      <div className="p-10">
+
+        Loading...
+
       </div>
+
     );
+
   }
 
-  return (
-    <div className="p-6">
+  return(
 
-      {/* Header */}
+<div className="p-6">
 
-      <div className="mb-6 flex items-center justify-between">
+{/* HEADER */}
 
-        <div>
+<div className="mb-8 flex justify-between">
 
-          <h1 className="text-3xl font-bold">
-            Employee Goal Sheet
-          </h1>
+<div>
 
-          <p className="mt-2 text-gray-600">
+<h1 className="text-4xl font-bold">
 
-            Status:
+Employee Goal Sheet
 
-            <span className="ml-2 font-semibold">
+</h1>
 
-              {
-                submissionStatus
-              }
+<p className="mt-2 text-gray-500">
 
-            </span>
+Status:
 
-          </p>
+<strong>
 
-        </div>
+{" "}
 
-        {/* Create */}
+{
+submissionStatus
+}
 
-        {!locked &&
-          goals.length <
-            8 && (
-            <Link
-              href="/employee/goals/create"
-              className="rounded bg-black px-5 py-2 text-white"
-            >
-              Create Goal
-            </Link>
-          )}
+</strong>
 
-      </div>
+</p>
 
-      {/* Locked */}
+</div>
 
-      {locked && (
-        <div className="mb-5 rounded border border-green-300 bg-green-50 p-4">
+{
+!locked
+&&
+goals.length<8
+&&(
 
-          Goal sheet locked
+<Link
 
-        </div>
-      )}
+href="/employee/goals/create"
 
-      {/* Empty */}
+className="rounded bg-black px-5 py-3 text-white"
 
-      {goals.length ===
-      0 ? (
-        <div className="rounded border p-6 text-center">
+>
 
-          No goals available
+Create Goal
 
-        </div>
-      ) : (
-        <div className="space-y-5">
+</Link>
 
-          {goals.map(
-            (
-              goal
-            ) => (
-              <div
-                key={
-                  goal.id
-                }
-                className="rounded border p-5 shadow"
-              >
-                <h2 className="text-xl font-semibold">
+)
 
-                  {
-                    goal.title
-                  }
+}
 
-                </h2>
+</div>
 
-                <p className="mt-2 text-gray-600">
+{/* NORMAL */}
 
-                  {
-                    goal.description
-                  }
+<div>
 
-                </p>
+<h2 className="mb-5 text-3xl font-bold">
 
-                <div className="mt-4 grid grid-cols-2 gap-4">
+My Goals
 
-                  <div>
+</h2>
 
-                    Target:
-                    {" "}
-                    {
-                      goal.target_value
-                    }
+<div className="space-y-5">
 
-                  </div>
+{
 
-                  <div>
+goals.map(
+(
+goal
+)=>(
 
-                    Weightage:
-                    {" "}
-                    {
-                      goal.weightage
-                    }
-                    %
+<div
 
-                  </div>
+key={
+goal.id
+}
 
-                  <div>
+className="rounded-xl border bg-white p-6"
 
-                    Progress:
-                    {" "}
-                    {
-                      goal.progress ||
-                      0
-                    }
-                    %
+>
 
-                  </div>
+<h3 className="text-2xl font-bold">
 
-                  <div>
+{
+goal.title
+}
 
-                    UOM:
-                    {" "}
-                    {
-                      goal.uom_type
-                    }
+</h3>
 
-                  </div>
+<p>
 
-                </div>
+{
+goal.description
+}
 
-                {/* Actions */}
+</p>
 
-                {!locked && (
-                  <div className="mt-5 flex gap-3">
+<div className="mt-4 grid grid-cols-2 gap-4">
 
-                    <Link
-                      href={`/employee/goals/edit/${goal.id}`}
-                      className="rounded bg-yellow-500 px-4 py-2 text-white"
-                    >
-                      Edit
-                    </Link>
+<div>
 
-                    <button
-                      onClick={() =>
-                        handleDelete(
-                          goal.id
-                        )
-                      }
-                      className="rounded bg-red-600 px-4 py-2 text-white"
-                    >
-                      Delete
-                    </button>
+Target:
 
-                    <Link
-                      href={`/employee/goals/progress/${goal.id}`}
-                      className="rounded bg-purple-600 px-4 py-2 text-white"
-                    >
-                      Update Progress
-                    </Link>
+{
+goal.target_value
+}
 
-                  </div>
-                )}
+</div>
 
-              </div>
-            )
-          )}
+<div>
 
-        </div>
-      )}
+Weight:
 
-      {/* Submit */}
+{
+goal.weightage
+}
+%
 
-      {!locked &&
-        goals.length >
-          0 && (
-          <div className="mt-8">
+</div>
 
-            <button
-              onClick={
-                handleSubmitGoalSheet
-              }
-              className="rounded bg-green-600 px-5 py-2 text-white"
-            >
-              Submit Goal Sheet
-            </button>
+<div>
 
-          </div>
-        )}
+Progress:
 
-    </div>
-  );
+{
+goal.progress||
+0
+}
+%
+
+</div>
+
+<div>
+
+UOM:
+
+{
+goal.uom_type
+}
+
+</div>
+
+</div>
+
+{
+!locked
+&&(
+
+<div className="mt-5 flex gap-3">
+
+<Link
+
+href={`/employee/goals/edit/${goal.id}`}
+
+className="rounded bg-yellow-500 px-4 py-2 text-white"
+
+>
+
+Edit
+
+</Link>
+
+<button
+
+onClick={()=>
+
+handleDelete(
+goal.id
+)
+
+}
+
+className="rounded bg-red-600 px-4 py-2 text-white"
+
+>
+
+Delete
+
+</button>
+
+</div>
+
+)
+
+}
+
+</div>
+
+)
+
+)
+
+}
+
+</div>
+
+</div>
+
+{/* SHARED */}
+
+<div className="mt-12">
+
+<h2 className="mb-5 text-3xl font-bold">
+
+Shared Goals
+
+</h2>
+
+{
+sharedGoals.length===0
+
+?
+
+<div className="rounded-xl border p-6">
+
+No shared goals
+
+</div>
+
+:
+
+<div className="space-y-5">
+
+{
+
+sharedGoals.map(
+(
+goal:any
+)=>(
+
+<div
+
+key={
+goal.id
+}
+
+className="rounded-xl border bg-blue-50 p-6"
+
+>
+
+<div className="flex justify-between">
+
+<div>
+
+<h3 className="text-2xl font-bold">
+
+{
+
+goal.shared_goals
+?.title
+
+}
+
+</h3>
+
+<p>
+
+{
+
+goal.shared_goals
+?.description
+
+}
+
+</p>
+
+<p className="mt-3">
+
+Target:
+
+<strong>
+
+{
+
+goal.shared_goals
+?.target_value
+
+}
+
+</strong>
+
+</p>
+
+<p>
+
+Achievement:
+
+<strong>
+
+{
+goal.achievement
+}
+%
+
+</strong>
+
+</p>
+
+</div>
+
+<div>
+
+<label>
+
+Weightage
+
+</label>
+
+<input
+
+type="number"
+
+value={
+goal.weightage
+}
+
+onChange={(e)=>{
+
+goal.weightage=
+
+Number(
+e.target.value
+);
+
+setSharedGoals(
+[
+...sharedGoals
+]
+);
+
+}}
+
+className="mt-2 rounded border p-3"
+
+/>
+
+<button
+
+onClick={()=>
+saveWeight(
+goal
+)
+}
+
+className="mt-3 rounded bg-blue-600 px-5 py-2 text-white"
+
+>
+
+Save
+
+</button>
+
+</div>
+
+</div>
+
+<div className="mt-5 rounded bg-white p-3">
+
+🔒 Goal Title and Target are locked
+
+</div>
+
+</div>
+
+)
+
+)
+
+}
+
+</div>
+
+}
+
+</div>
+
+{/* SUBMIT */}
+
+{
+!locked
+&&
+goals.length>0
+&&(
+
+<div className="mt-8">
+
+<button
+
+onClick={
+handleSubmitGoalSheet
+}
+
+className="rounded bg-green-600 px-5 py-3 text-white"
+
+>
+
+Submit Goal Sheet
+
+</button>
+
+</div>
+
+)
+
+}
+
+</div>
+
+);
+
 }
