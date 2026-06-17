@@ -1,180 +1,699 @@
+
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
-import { createGoal } from "@/services/goalservice";
+import {
+ArrowLeft,
+Target,
+Save,
+Loader2,
+ChevronRight,
+} from "lucide-react";
 
-export default function CreateGoalPage() {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [thrustArea, setThrustArea] = useState("");
-  const [uomType, setUomType] = useState("");
-  const [targetValue, setTargetValue] = useState("");
-  const [weightage, setWeightage] = useState("");
+import {
+createGoal,
+} from "@/services/goalservice";
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+export default function CreateGoalPage(){
 
-    console.log("FORM SUBMITTED");
+const[
+title,
+setTitle,
+]=useState("");
 
-    const response = await createGoal({
-      title,
-      description,
-      thrustArea,
-      uomType,
-      targetValue,
-      weightage,
-    });
+const[
+description,
+setDescription,
+]=useState("");
 
-    console.log("CREATE GOAL RESPONSE:", response);
+const[
+thrustArea,
+setThrustArea,
+]=useState("");
 
-    if (response?.error) {
-      alert(response.error);
-      return;
-    }
+const[
+uomType,
+setUomType,
+]=useState("");
 
-    alert("Goal Created Successfully");
+const[
+targetValue,
+setTargetValue,
+]=useState("");
 
-    // Reset form
-    setTitle("");
-    setDescription("");
-    setThrustArea("");
-    setUomType("");
-    setTargetValue("");
-    setWeightage("");
-  }
+const[
+weightage,
+setWeightage,
+]=useState("");
 
-  return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-6 text-3xl font-bold">
-        Create Goal
-      </h1>
+const[
+loading,
+setLoading,
+]=useState(false);
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5 rounded-lg border p-6 shadow"
-      >
-        <div>
-          <label className="mb-2 block font-medium">
-            Goal Title
-          </label>
+const[
+message,
+setMessage,
+]=useState("");
 
-          <input
-            type="text"
-            className="w-full rounded border p-2"
-            placeholder="Increase sales revenue"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </div>
+async function submit(
+e:React.FormEvent
+){
 
-        <div>
-          <label className="mb-2 block font-medium">
-            Description
-          </label>
+e.preventDefault();
 
-          <textarea
-            className="w-full rounded border p-2"
-            rows={4}
-            placeholder="Describe the goal..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
-        </div>
+setLoading(
+true
+);
 
-        <div>
-          <label className="mb-2 block font-medium">
-            Thrust Area
-          </label>
+setMessage("");
 
-          <input
-            type="text"
-            className="w-full rounded border p-2"
-            placeholder="Sales"
-            value={thrustArea}
-            onChange={(e) => setThrustArea(e.target.value)}
-            required
-          />
-        </div>
+try{
 
-        <div>
-          <label className="mb-2 block font-medium">
-            UOM Type
-          </label>
+const res=
+await createGoal({
 
-          <select
-            className="w-full rounded border p-2"
-            value={uomType}
-            onChange={(e) => setUomType(e.target.value)}
-            required
-          >
-            <option value="">Select</option>
+title,
 
-            <option value="numeric_min">
-              Numeric Min
-            </option>
+description,
 
-            <option value="numeric_max">
-              Numeric Max
-            </option>
+thrustArea,
 
-            <option value="percentage_min">
-              Percentage Min
-            </option>
+uomType,
 
-            <option value="percentage_max">
-              Percentage Max
-            </option>
+targetValue,
 
-            <option value="timeline">
-              Timeline
-            </option>
+weightage,
 
-            <option value="zero_based">
-              Zero Based
-            </option>
-          </select>
-        </div>
+});
 
-        <div>
-          <label className="mb-2 block font-medium">
-            Target Value
-          </label>
+if(
+res?.error
+){
 
-          <input
-            type="number"
-            className="w-full rounded border p-2"
-            placeholder="100"
-            value={targetValue}
-            onChange={(e) => setTargetValue(e.target.value)}
-            required
-          />
-        </div>
+setMessage(
+res.error
+);
 
-        <div>
-          <label className="mb-2 block font-medium">
-            Weightage
-          </label>
+return;
 
-          <input
-            type="number"
-            className="w-full rounded border p-2"
-            placeholder="20"
-            value={weightage}
-            onChange={(e) => setWeightage(e.target.value)}
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="rounded bg-black px-4 py-2 text-white"
-        >
-          Create Goal
-        </button>
-      </form>
-    </div>
-  );
 }
+
+window.location.href=
+"/employee/dashboard";
+
+}
+
+finally{
+
+setLoading(
+false
+);
+
+}
+
+}
+
+return(
+
+<div className="min-h-screen bg-[#F8F9FC]">
+
+<div className="max-w-7xl mx-auto px-5 py-8">
+
+{/* BACK */}
+
+<Link
+href="/employee/goals"
+className="
+inline-flex
+items-center
+gap-2
+text-sm
+text-gray-500
+hover:text-black
+mb-6
+"
+>
+
+<ArrowLeft
+size={16}
+/>
+
+Back
+
+</Link>
+
+{/* HERO */}
+
+<div
+className="
+rounded-[32px]
+bg-[#0F1729]
+text-white
+overflow-hidden
+"
+>
+
+<div className="p-8">
+
+<div
+className="
+inline-flex
+w-14
+h-14
+rounded-2xl
+bg-indigo-600
+items-center
+justify-center
+mb-5
+"
+>
+
+<Target
+size={26}
+/>
+
+</div>
+
+<h1
+className="
+text-4xl
+font-black
+mb-3
+"
+>
+
+Create Goal
+
+</h1>
+
+<p
+className="
+text-white/50
+max-w-2xl
+"
+>
+
+Create measurable objectives
+aligned with your quarter
+performance.
+
+</p>
+
+</div>
+
+</div>
+
+<div
+className="
+grid
+xl:grid-cols-[1.4fr_0.6fr]
+gap-6
+mt-6
+"
+>
+
+{/* FORM */}
+
+<form
+onSubmit={
+submit
+}
+className="
+bg-white
+rounded-[32px]
+p-8
+border
+border-gray-100
+"
+>
+
+<div className="space-y-6">
+
+<Field
+label="Goal Title"
+>
+
+<input
+required
+value={
+title
+}
+onChange={
+e=>
+setTitle(
+e.target.value
+)
+}
+placeholder="Increase customer retention"
+className={input}
+/>
+
+</Field>
+
+<Field
+label="Description"
+>
+
+<textarea
+required
+rows={5}
+value={
+description
+}
+onChange={
+e=>
+setDescription(
+e.target.value
+)
+}
+placeholder="Describe goal..."
+className={`${input} resize-none`}
+/>
+
+</Field>
+
+<div className="grid md:grid-cols-2 gap-5">
+
+<Field
+label="Thrust Area"
+>
+
+<input
+required
+value={
+thrustArea
+}
+onChange={
+e=>
+setThrustArea(
+e.target.value
+)
+}
+placeholder="Sales"
+className={input}
+/>
+
+</Field>
+
+<Field
+label="Measurement"
+>
+
+<select
+required
+value={
+uomType
+}
+onChange={
+e=>
+setUomType(
+e.target.value
+)
+}
+className={input}
+>
+
+<option value="">
+
+Select
+
+</option>
+
+<option value="numeric_max">
+
+Numeric Max
+
+</option>
+
+<option value="percentage_max">
+
+Percentage
+
+</option>
+
+<option value="timeline">
+
+Timeline
+
+</option>
+
+</select>
+
+</Field>
+
+<Field
+label="Target"
+>
+
+<input
+required
+type="number"
+value={
+targetValue
+}
+onChange={
+e=>
+setTargetValue(
+e.target.value
+)
+}
+className={input}
+/>
+
+</Field>
+
+<Field
+label="Weightage %"
+>
+
+<input
+required
+min={10}
+max={100}
+type="number"
+value={
+weightage
+}
+onChange={
+e=>
+setWeightage(
+e.target.value
+)
+}
+className={input}
+/>
+
+</Field>
+
+</div>
+
+</div>
+
+{
+
+message
+
+&&
+
+<div
+className="
+mt-5
+rounded-xl
+bg-red-50
+text-red-600
+p-4
+"
+>
+
+{message}
+
+</div>
+
+}
+
+<button
+disabled={
+loading
+}
+className="
+mt-8
+w-full
+h-14
+rounded-2xl
+bg-indigo-600
+text-white
+font-semibold
+hover:bg-indigo-700
+transition
+flex
+justify-center
+items-center
+gap-3
+"
+>
+
+{
+
+loading
+
+?
+
+<>
+
+<Loader2
+size={18}
+className="
+animate-spin
+"
+/>
+
+Saving...
+
+</>
+
+:
+
+<>
+
+<Save
+size={18}
+/>
+
+Create Goal
+
+</>
+
+}
+
+</button>
+
+</form>
+
+{/* SIDE */}
+
+<div className="space-y-5">
+
+<Card>
+
+<h3
+className="
+font-semibold
+mb-3
+"
+>
+
+Goal Guidelines
+
+</h3>
+
+<ul
+className="
+space-y-3
+text-sm
+text-gray-500
+"
+>
+
+<li>
+
+•
+
+Max 8 goals
+
+</li>
+
+<li>
+
+•
+
+Weight ≥ 10%
+
+</li>
+
+<li>
+
+•
+
+Total = 100%
+
+</li>
+
+<li>
+
+•
+
+Be measurable
+
+</li>
+
+</ul>
+
+</Card>
+
+<Card>
+
+<h3
+className="
+font-semibold
+mb-4
+"
+>
+
+Weight Preview
+
+</h3>
+
+<div
+className="
+h-3
+rounded-full
+bg-gray-100
+overflow-hidden
+"
+>
+
+<div
+className="
+h-full
+bg-indigo-600
+"
+style={{
+width:
+`${Math.min(
+100,
+Number(
+weightage
+||
+0
+)
+)}%`
+}}
+/>
+
+</div>
+
+<div
+className="
+mt-3
+text-sm
+text-gray-500
+"
+>
+
+{
+weightage
+||
+0
+}
+%
+
+allocated
+
+</div>
+
+</Card>
+
+<Card>
+
+<Link
+href="/employee/goals"
+className="
+flex
+justify-between
+items-center
+"
+>
+
+View Goal Sheet
+
+<ChevronRight
+size={16}
+/>
+
+</Link>
+
+</Card>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+);
+
+}
+
+function Field({
+label,
+children,
+}:any){
+
+return(
+
+<div>
+
+<label
+className="
+block
+text-sm
+font-medium
+mb-2
+"
+>
+
+{label}
+
+</label>
+
+{children}
+
+</div>
+
+);
+
+}
+
+function Card({
+children,
+}:any){
+
+return(
+
+<div
+className="
+bg-white
+rounded-[32px]
+p-6
+border
+border-gray-100
+"
+>
+
+{children}
+
+</div>
+
+);
+
+}
+
+const input=
+`
+w-full
+h-14
+rounded-2xl
+border
+border-gray-200
+px-5
+outline-none
+focus:ring-4
+focus:ring-indigo-100
+focus:border-indigo-500
+transition
+`;

@@ -69,36 +69,24 @@ export async function getCycles() {
     )
     .select("*");
 }
+export async function activateCycle(id: string) {
+  const supabase = createClient();
 
-export async function activateCycle(
-  id: string
-) {
-  const supabase =
-    createClient();
-
+  // First, deactivate all OTHER cycles
   await supabase
-    .from(
-      "goal_cycles"
-    )
+    .from("goal_cycles")
     .update({
-      status:
-        "inactive",
+      status: "inactive",
+      is_active: false,
     })
-    .neq(
-      "id",
-      id
-    );
+    .neq("id", id);
 
+  // Then, activate the selected cycle
   return supabase
-    .from(
-      "goal_cycles"
-    )
+    .from("goal_cycles")
     .update({
-      status:
-        "active",
+      status: "active",
+      is_active: true,
     })
-    .eq(
-      "id",
-      id
-    );
+    .eq("id", id);
 }
