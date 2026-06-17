@@ -80,8 +80,9 @@ export default function ManagerManagement() {
       if (userRes) setProfile(userRes);
 
       if (reportRes) {
-        const { employees: allProfiles = [], sheets = [], goals = [] } = reportRes;
-        
+        const allProfiles = reportRes.employees || [];
+        const sheets = reportRes.sheets || [];
+        const goals = reportRes.goals || [];
         const managersList = allProfiles.filter((p: any) => p.role === "manager");
         const employeesList = allProfiles.filter((p: any) => p.role === "employee");
 

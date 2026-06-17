@@ -78,8 +78,9 @@ export default function EmployeeManagement() {
       if (userRes) setProfile(userRes);
 
       if (reportRes) {
-        const { employees: allProfiles = [], sheets = [], goals = [] } = reportRes;
-        
+        const allProfiles = reportRes.employees || [];
+        const sheets = reportRes.sheets || [];
+        const goals = reportRes.goals || []; 
         const employeeList = allProfiles.filter((p: any) => p.role === "employee");
         const managersList = allProfiles.filter((p: any) => p.role === "manager");
 

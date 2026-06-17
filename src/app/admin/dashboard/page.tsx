@@ -80,7 +80,9 @@ export default function AdminDashboard() {
 
       // --- Crunch Report Data for Metrics ---
       if (reportRes) {
-        const { employees = [], sheets = [], goals = [] } = reportRes;
+        const employees = reportRes.employees || [];
+        const sheets = reportRes.sheets || [];
+        const goals = reportRes.goals || [];
 
         // 1. Pending Approvals
         const pending = sheets.filter((s: any) => s.submission_status === "submitted").length;

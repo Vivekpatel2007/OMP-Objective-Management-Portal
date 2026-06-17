@@ -90,10 +90,11 @@ export default function GoalSheetsAdministration() {
       ]);
 
       if (userRes) setProfile(userRes);
-
       if (reportRes) {
-        const { employees: allProfiles = [], sheets = [], goals = [] } = reportRes;
-        const leadershipList = allProfiles.filter((p: any) => p.role === "manager" || p.role === "admin");
+          const allProfiles = reportRes.employees || [];
+          const sheets = reportRes.sheets || [];
+          const goals = reportRes.goals || [];
+          const leadershipList = allProfiles.filter((p: any) => p.role === "manager" || p.role === "admin");
 
         const enrichedSheets = sheets.map((sheet: any) => {
           const emp = allProfiles.find((p: any) => p.id === sheet.employee_id) || {};

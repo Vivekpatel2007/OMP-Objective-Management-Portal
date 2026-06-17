@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export default function ManagerLayout({
   children,
 }: {
@@ -7,7 +5,6 @@ export default function ManagerLayout({
 }) {
   return (
     <div className="flex min-h-screen">
-      
       <main className="flex-1">
         {children}
       </main>
