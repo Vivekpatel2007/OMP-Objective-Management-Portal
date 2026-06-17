@@ -108,9 +108,8 @@ export async function approveGoalSheet(
 }
 
 // Reject goal sheet
-export async function rejectGoalSheet(
-  goalSheetId: string
-) {
+// Update the function signature to accept the comment
+export async function rejectGoalSheet(sheetId: string, comment: string) {
   try {
     const supabase = createClient();
 
@@ -119,17 +118,15 @@ export async function rejectGoalSheet(
       .update({
         submission_status: "rejected",
         locked: false,
+        rejection_reason: comment, // Make sure this column exists in your table
       })
-      .eq("id", goalSheetId)
+      .eq("id", sheetId)
       .select();
 
     return { data, error };
   } catch (err) {
     console.log(err);
-
-    return {
-      error: "Something went wrong",
-    };
+    return { error: "Something went wrong" };
   }
 }
 export async function getGoalSheetDetails(
