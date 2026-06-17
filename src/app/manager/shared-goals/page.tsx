@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import {
   BarChart3,
   Bell,
@@ -16,7 +17,9 @@ import {
   Plus,
   Building2,
   UserPlus,
-  Check
+  Check,
+  LogOut,
+  Activity
 } from "lucide-react";
 
 import {
@@ -25,6 +28,7 @@ import {
   getCurrentUserProfile,
   getSharedGoals,
 } from "@/services/sharedgoalservice";
+import { Badge } from "@/components/ui/badge";
 
 export default function SharedGoalsPage() {
   const [profile, setProfile] = useState<any>(null);
@@ -71,6 +75,12 @@ export default function SharedGoalsPage() {
     setLoading(false);
   }
 
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
   function toggleEmployee(emp: any) {
     const exists = selected.some((s) => s.id === emp.id);
     if (exists) {
@@ -111,9 +121,13 @@ export default function SharedGoalsPage() {
     });
   }
 
+  const displayedSharedGoals = profile?.role === "manager"
+    ? sharedGoals.filter(g => g.department === profile.department || g.primary_owner === profile.id)
+    : sharedGoals;
+
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#F8F9FC]">
+      <div className="h-screen w-full flex items-center justify-center bg-[#F8F9FC] text-neutral-500 font-medium">
         Loading Shared Goals...
       </div>
     );
@@ -139,30 +153,32 @@ export default function SharedGoalsPage() {
 
         <nav className="space-y-2 px-3 flex-1 mt-4">
           <Item icon={LayoutDashboard} href="/manager/dashboard" label="Dashboard" />
-          <Item icon={CheckCircle} href="/manager/approvals" label="Approvals" />
+          <Item icon={CheckCircle} href="/manager/approvals/id" label="Approvals" />
           <Item icon={ClipboardCheck} href="/manager/checkins" label="Check-ins" />
           <Item icon={Users} href="/manager/shared-goals" label="Shared Goals" active />
-          <Item icon={BarChart3} href="/manager/reports" label="Team Reports" />
-          <Item icon={ScrollText} href="/manager/audit" label="Audit Log" />
+
+          <div className="pt-4 mt-4 border-t border-white/10">
+            <button onClick={handleSignOut} className="flex w-full gap-3 px-4 py-3 rounded-xl transition text-white/70 hover:bg-rose-500/10 hover:text-rose-500 text-left items-center text-sm">
+              <LogOut size={18} /> Sign Out
+            </button>
+          </div>
         </nav>
       </aside>
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* HEADER */}
-        <header className="bg-white px-5 py-4 border-b flex justify-between items-center z-10">
+        <header className="bg-white px-5 py-4 border-b flex justify-between items-center z-10 shrink-0">
           <div className="flex gap-3 items-center">
-            <button onClick={() => setMobile(!mobile)} className="md:hidden">
-              {mobile ? <X /> : <Menu />}
+            <button onClick={() => setMobile(!mobile)} className="md:hidden text-neutral-600 hover:text-neutral-900">
+              {mobile ? <X size={24} /> : <Menu size={24} />}
             </button>
             <div className="flex flex-col">
               <h1 className="font-semibold text-neutral-950 text-base">Shared Goals</h1>
             </div>
           </div>
           <div className="flex gap-4 items-center">
-            <Link href="/notifications" className="relative text-neutral-500 hover:text-neutral-900 transition-colors">
-              <Bell size={20} />
-            </Link>
+            
             <div className="flex items-center gap-3 border-l pl-4">
               <div className="flex flex-col items-end">
                 <span className="leading-none font-semibold text-sm">
@@ -173,7 +189,7 @@ export default function SharedGoalsPage() {
                 </span>
               </div>
               <div className="size-8 font-semibold rounded-full bg-indigo-100 text-indigo-700 text-xs flex justify-center items-center">
-                {profile?.full_name?.substring(0, 2).toUpperCase() || "MGR"}
+                {profile?.full_name?.substring(0, 2).toUpperCase() || "MG"}
               </div>
             </div>
           </div>
@@ -334,11 +350,11 @@ export default function SharedGoalsPage() {
                 <div className="bg-white rounded-2xl border border-neutral-200/60 shadow-sm flex flex-col h-full overflow-hidden">
                   <div className="p-6 border-b border-neutral-100 bg-neutral-50/50">
                     <h3 className="font-semibold text-lg text-neutral-900">Active Shared Goals</h3>
-                    <p className="text-sm text-neutral-500 mt-1">Currently assigned KPIs</p>
+                    <p className="text-sm text-neutral-500 mt-1">Currently assigned KPIs and their statuses</p>
                   </div>
                   
                   <div className="p-4 flex-1 overflow-y-auto flex flex-col gap-3 custom-scrollbar">
-                    {sharedGoals.length === 0 ? (
+                    {displayedSharedGoals.length === 0 ? (
                       <div className="text-center py-10 px-4 rounded-xl border border-dashed border-neutral-200 bg-neutral-50 flex flex-col items-center">
                         <Target className="size-8 text-neutral-300 mb-2" />
                         <h3 className="font-medium text-neutral-900">No active goals</h3>
@@ -347,35 +363,61 @@ export default function SharedGoalsPage() {
                         </p>
                       </div>
                     ) : (
-                      sharedGoals.map((g) => (
-                        <div key={g.id} className="rounded-xl border border-neutral-200 bg-white p-4 hover:shadow-sm transition-shadow">
-                          <div className="flex justify-between items-start gap-2 mb-2">
-                            <h4 className="font-semibold text-neutral-900 text-sm leading-tight">
-                              {g.title}
-                            </h4>
-                            <span className="shrink-0 px-2.5 py-0.5 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-medium text-neutral-600 uppercase tracking-wider">
-                              {g.assignment_type}
-                            </span>
-                          </div>
-                          
-                          <p className="text-xs text-neutral-500 mb-4 line-clamp-2">
-                            {g.description || "No description provided."}
-                          </p>
-                          
-                          <div className="grid grid-cols-2 gap-2 border-t border-neutral-100 pt-3 mt-auto">
-                            <div className="flex flex-col">
-                              <span className="text-[10px] uppercase font-semibold text-neutral-400">Target</span>
-                              <span className="text-sm font-medium text-neutral-800">{g.target_value} ({g.uom_type})</span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] uppercase font-semibold text-neutral-400">Created</span>
-                              <span className="text-sm font-medium text-neutral-800">
-                                {g.created_at?.split("T")[0] || "N/A"}
+                      displayedSharedGoals.map((g) => {
+                        // Calculate Statuses safely
+                        const assignments = g.shared_goal_assignments || [];
+                        const totalCount = assignments.length;
+                        const submittedCount = assignments.filter((a: any) => a.status === 'submitted').length;
+                        const approvedCount = assignments.filter((a: any) => a.status === 'approved').length;
+                        const draftedCount = totalCount - submittedCount - approvedCount; // Not submitted yet
+
+                        return (
+                          <div key={g.id} className="rounded-xl border border-neutral-200 bg-white p-4 hover:shadow-sm transition-shadow">
+                            <div className="flex justify-between items-start gap-2 mb-2">
+                              <h4 className="font-semibold text-neutral-900 text-sm leading-tight">
+                                {g.title}
+                              </h4>
+                              <span className="shrink-0 px-2.5 py-0.5 rounded-full bg-neutral-100 border border-neutral-200 text-[10px] font-medium text-neutral-600 uppercase tracking-wider">
+                                {g.assignment_type}
                               </span>
                             </div>
+                            
+                            <p className="text-xs text-neutral-500 mb-4 line-clamp-2">
+                              {g.description || "No description provided."}
+                            </p>
+
+                            {/* Status Indicators */}
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              <Badge variant="outline" className="bg-neutral-50 text-neutral-600 border-neutral-200 font-medium text-[10px]">
+                                {totalCount} Assigned
+                              </Badge>
+                              {submittedCount > 0 && (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-medium text-[10px]">
+                                  {submittedCount} Submitted
+                                </Badge>
+                              )}
+                              {approvedCount > 0 && (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium text-[10px]">
+                                  {approvedCount} Approved
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 border-t border-neutral-100 pt-3 mt-auto">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] uppercase font-semibold text-neutral-400">Target</span>
+                                <span className="text-sm font-medium text-neutral-800">{g.target_value} ({g.uom_type})</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] uppercase font-semibold text-neutral-400">Created</span>
+                                <span className="text-sm font-medium text-neutral-800">
+                                  {g.created_at?.split("T")[0] || "N/A"}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -386,7 +428,6 @@ export default function SharedGoalsPage() {
         </main>
       </div>
 
-      {/* Adding some global css inside component just for custom scrollbar styling if needed, though standard tailwind is preferred */}
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
@@ -414,7 +455,7 @@ function Item({ icon: Icon, href, label, active, badge }: any) {
           : "text-white/70 hover:bg-white/10 hover:text-white"
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 text-sm">
         <Icon size={18} />
         {label}
       </div>

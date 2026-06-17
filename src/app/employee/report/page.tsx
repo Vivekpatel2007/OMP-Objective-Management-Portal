@@ -2,54 +2,40 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { jsPDF } from "jspdf"; // Added jsPDF import
+import { jsPDF } from "jspdf";
+import { createClient } from "@/lib/supabase/client";
+
 import {
   LayoutDashboard,
   ListChecks,
   CalendarCheck,
   BarChart2,
-  Settings,
   Bell,
   Menu,
   X,
   Target,
   TrendingUp,
   CheckCircle2,
-  CalendarRange,
-  Users,
   Download,
   FileSpreadsheet,
   BarChart3,
-  FileText,
-  CalendarCheck2,
-  Award,
-  RefreshCw,
+  LogOut,
+  Layers,
+  Users,
+  Send
 } from "lucide-react";
 
 import { getEmployeeReportData } from "@/services/reportservice";
-
+import { getEmployeeSharedGoals } from "@/services/sharedgoalservice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-interface Goal {
-  id: string | number;
-  title: string;
-  weightage: number | string;
-  target_value: number | string;
-  progress: number;
-}
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function EmployeeReports() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [sharedGoals, setSharedGoals] = useState<any[]>([]);
   const [sheet, setSheet] = useState<any>(null);
   const [mobile, setMobile] = useState(false);
 
@@ -60,395 +46,309 @@ export default function EmployeeReports() {
   async function loadData() {
     try {
       setLoading(true);
-      const reportData = await getEmployeeReportData();
-      
+      const [reportData, sharedRes] = await Promise.all([
+        getEmployeeReportData(),
+        getEmployeeSharedGoals()
+      ]);
+
       if (reportData) {
         setProfile(reportData.profile);
         setGoals(reportData.goals || []);
         setSheet(reportData.goalSheet);
+      }
+      if (sharedRes) {
+        setSharedGoals(sharedRes.data || []);
       }
     } finally {
       setLoading(false);
     }
   }
 
-  // --- EXPORT LOGIC ---
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
 
+  // --- EXPORT LOGIC ---
   const handleExportCSV = () => {
-    if (!goals || goals.length === 0) {
+    if (goals.length === 0 && sharedGoals.length === 0) {
       alert("No goals available to export.");
       return;
     }
-
-    // 1. Define headers
-    const headers = ["Title, Weightage (%), Progress (%), Status"];
     
-    // 2. Map data to rows
-    const rows = goals.map(g => {
-      // Escape quotes in titles to prevent CSV breaking
+    const headers = ["Category, Title, Focus Area, Target, Weightage (%), Progress (%), Status"];
+    
+    // Personal Goals Rows
+    const personalRows = goals.map(g => {
       const safeTitle = g.title.replace(/"/g, '""');
-      const status = g.progress === 100 ? 'Completed' : 'Active';
-      return `"${safeTitle}",${g.weightage || 0},${g.progress || 0},${status}`;
+      const status = g.progress >= 100 ? 'Completed' : 'Active';
+      return `"Personal","${safeTitle}","${g.thrust_area || 'N/A'}",${g.target_value || 0},${g.weightage || 0},${g.progress || 0},${status}`;
     });
 
-    // 3. Create Blob and download
-    const csvContent = headers.concat(rows).join("\n");
+    // Shared Goals Rows
+    const sharedRows = sharedGoals.map(sg => {
+      const safeTitle = (sg.shared_goals?.title || 'Shared Goal').replace(/"/g, '""');
+      const status = (sg.status === 'submitted' || sg.status === 'approved') ? 'Submitted' : 'Draft';
+      return `"Shared","${safeTitle}","${sg.shared_goals?.department || 'Cross-Dept'}",${sg.shared_goals?.target_value || 0},${sg.weightage || 0},${sg.progress || 0},${status}`;
+    });
+
+    const csvContent = headers.concat(personalRows, sharedRows).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    
     const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `${profile?.full_name || 'Employee'}_Goals_Report.csv`);
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `${profile?.full_name || 'Employee'}_Performance_Report.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handleExportPDF = () => {
-    if (!goals || goals.length === 0) {
+    if (goals.length === 0 && sharedGoals.length === 0) {
       alert("No goals available to export.");
       return;
     }
-
+    
     const doc = new jsPDF();
-
-    // Title
     doc.setFontSize(22);
-    doc.text("GoalTrack Performance Report", 14, 20);
-
-    // Profile Info
+    doc.text("Performance Report", 14, 20);
+    
     doc.setFontSize(12);
     doc.setTextColor(100);
     doc.text(`Employee: ${profile?.full_name || 'N/A'}`, 14, 32);
     doc.text(`Department: ${profile?.department || 'N/A'}`, 14, 38);
-    doc.text(`Cycle Status: ${sheet?.submission_status?.toUpperCase() || 'DRAFT'}`, 14, 44);
+    doc.text(`Sheet Status: ${sheet?.submission_status?.toUpperCase() || 'DRAFT'}`, 14, 44);
 
-    // Overall Progress Summary
-    const active = goals.length;
-    const completed = goals.filter((g) => g.progress === 100).length;
-    const overallProg = active ? Math.round(goals.reduce((acc, curr) => acc + (Number(curr.progress) || 0), 0) / active) : 0;
-    
-    doc.text(`Overall Progress: ${overallProg}%`, 130, 32);
-    doc.text(`Completed Goals: ${completed} / ${active}`, 130, 38);
+    doc.line(14, 50, 196, 50);
 
-    doc.line(14, 50, 196, 50); // Divider line
-
-    // Goals List
     let yPos = 62;
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text("Goal Breakdown", 14, yPos);
-    yPos += 10;
+    
+    // --- SECTION 1: PERSONAL GOALS ---
+    if (goals.length > 0) {
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("Personal Goals", 14, yPos);
+      yPos += 10;
 
-    doc.setFontSize(11);
-    goals.forEach((g, index) => {
-      const status = g.progress === 100 ? "Completed" : "Active";
-      
-      // Goal Title
-      doc.setFont("helvetica", "bold");
-      doc.text(`${index + 1}. ${g.title}`, 14, yPos);
-      
-      // Goal Metrics
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(80);
-      doc.text(`Weightage: ${g.weightage || 0}%  |  Progress: ${g.progress || 0}%  |  Status: ${status}`, 20, yPos + 6);
-      
-      yPos += 16;
-      doc.setTextColor(0); // Reset color
+      doc.setFontSize(11);
+      goals.forEach((g, index) => {
+        const status = g.progress >= 100 ? "Completed" : "Active";
+        doc.setFont("helvetica", "bold");
+        doc.text(`${index + 1}. ${g.title}`, 14, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80);
+        doc.text(`Area: ${g.thrust_area || 'N/A'}  |  Weight: ${g.weightage}%  |  Progress: ${g.progress}%  |  Status: ${status}`, 20, yPos + 6);
+        yPos += 16;
+        doc.setTextColor(0);
+        if (yPos > 270) { doc.addPage(); yPos = 20; }
+      });
+      yPos += 10;
+    }
 
-      // Add a new page if we run out of space at the bottom
-      if (yPos > 270) {
-        doc.addPage();
-        yPos = 20;
-      }
-    });
+    // --- SECTION 2: SHARED GOALS ---
+    if (sharedGoals.length > 0) {
+      if (yPos > 250) { doc.addPage(); yPos = 20; }
+      
+      doc.setFontSize(16);
+      doc.setTextColor(0);
+      doc.text("Shared Goals", 14, yPos);
+      yPos += 10;
 
-    // Save PDF
-    doc.save(`${profile?.full_name?.replace(/\s+/g, '_') || 'Employee'}_Performance_Report.pdf`);
+      doc.setFontSize(11);
+      sharedGoals.forEach((sg, index) => {
+        const status = (sg.status === 'submitted' || sg.status === 'approved') ? 'Submitted' : 'Draft';
+        doc.setFont("helvetica", "bold");
+        doc.text(`${index + 1}. ${sg.shared_goals?.title || 'Shared Goal'}`, 14, yPos);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80);
+        doc.text(`Weight: ${sg.weightage}%  |  Progress: ${sg.progress}%  |  Status: ${status}`, 20, yPos + 6);
+        yPos += 16;
+        doc.setTextColor(0);
+        if (yPos > 270) { doc.addPage(); yPos = 20; }
+      });
+    }
+
+    doc.save(`${profile?.full_name?.replace(/\s+/g, '_') || 'Employee'}_Report.pdf`);
   };
 
-  // --- DERIVED STATS ---
-  const activeGoals = goals.length;
-  const completedGoals = goals.filter((g) => g.progress === 100).length;
-  const onTrackGoals = goals.filter((g) => g.progress > 0 && g.progress < 100).length;
-  const behindGoals = goals.filter((g) => g.progress === 0 || !g.progress).length;
+  // --- DERIVED STATS (Personal) ---
+  const activePersonal = goals.length;
+  const completedPersonal = goals.filter((g) => g.progress >= 100).length;
+  const onTrackPersonal = goals.filter((g) => g.progress > 0 && g.progress < 100).length;
+  const behindPersonal = goals.filter((g) => g.progress === 0 || !g.progress).length;
   
-  const overallProgress = activeGoals
-    ? Math.round(goals.reduce((acc, curr) => acc + (Number(curr.progress) || 0), 0) / activeGoals)
+  const overallProgress = activePersonal
+    ? Math.round(goals.reduce((acc, curr) => acc + (Number(curr.progress) || 0), 0) / activePersonal)
     : 0;
 
-  if (loading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#F8F9FC]">
-        Loading Reports...
-      </div>
-    );
-  }
+  // --- DERIVED STATS (Shared) ---
+  const totalShared = sharedGoals.length;
+  const submittedShared = sharedGoals.filter(sg => sg.status === 'submitted' || sg.status === 'approved').length;
+
+  // --- Calculate Thrust Area Stats (Personal Only) ---
+  const thrustAreaStats = goals.reduce((acc: any, g: any) => {
+    const area = g.thrust_area || 'General';
+    if (!acc[area]) acc[area] = { count: 0, progress: 0, weight: 0 };
+    acc[area].count += 1;
+    acc[area].progress += (Number(g.progress) || 0);
+    acc[area].weight += (Number(g.weightage) || 0);
+    return acc;
+  }, {});
+
+  if (loading) return <div className="h-screen w-full flex items-center justify-center bg-[#F8F9FC] text-neutral-500 font-medium">Loading Reports...</div>;
 
   return (
     <div className="flex h-screen bg-[#F8F9FC]">
-      {/* SIDEBAR */}
-      <aside
-        className={`fixed md:static bg-[#0F1729] w-[230px] h-screen z-50 transition-transform ${
-          mobile ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0`}
-      >
-        <div className="p-5">
-          <h1 className="text-white font-bold text-xl flex items-center gap-2">
-            <Target className="size-5 text-indigo-500" /> GoalTrack
-          </h1>
-        </div>
-        <nav className="space-y-2 px-3">
+      <aside className={`fixed md:static bg-[#0F1729] w-[230px] h-screen z-50 transition-transform ${mobile ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
+        <div className="p-5"><h1 className="text-white font-bold text-xl flex items-center gap-2">GoalTrack</h1></div>
+        <nav className="space-y-2 px-3 mt-4">
           <Item icon={LayoutDashboard} href="/employee/dashboard" label="Dashboard" />
           <Item icon={ListChecks} href="/employee/goals" label="Goals" />
           <Item icon={CalendarCheck} href="/employee/checkins" label="Check-ins" />
-          <Item icon={BarChart2} href="/employee/reports" label="Reports" active />
-          <Item icon={Settings} href="/settings" label="Settings" />
+          <Item icon={BarChart2} href="/employee/report" label="Reports" active />
+          <div className="pt-4 mt-4 border-t border-white/10">
+            <button onClick={handleSignOut} className="flex w-full gap-3 px-4 py-3 rounded-xl transition text-white/70 hover:bg-rose-500/10 hover:text-rose-500 text-left">
+              <LogOut size={18} /> Sign Out
+            </button>
+          </div>
         </nav>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* HEADER */}
-        <header className="bg-white px-5 py-4 border-b flex justify-between items-center">
-          <div className="flex gap-3 items-center">
-            <button onClick={() => setMobile(!mobile)} className="md:hidden">
-              {mobile ? <X /> : <Menu />}
-            </button>
-            <div className="font-medium text-neutral-800">Reports</div>
-          </div>
-          <div className="flex gap-4 items-center">
-            <Link href="/notifications" className="relative text-neutral-500 hover:text-neutral-900 transition-colors">
-              <Bell size={20} />
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-600 rounded-full" />
-            </Link>
-            <div className="flex items-center gap-3 border-l pl-4">
-              <div className="flex flex-col items-end">
-                <span className="leading-none font-semibold text-sm">
-                  {profile?.full_name || "Employee"}
-                </span>
-                <span className="text-neutral-500 text-xs">
-                  {profile?.department || "Operations"}
-                </span>
-              </div>
-              <div className="size-8 font-semibold rounded-full bg-indigo-100 text-indigo-700 text-xs flex justify-center items-center">
-                {profile?.full_name?.substring(0, 2).toUpperCase() || "ME"}
-              </div>
-            </div>
-          </div>
+        <header className="bg-white px-5 py-4 border-b flex justify-between items-center z-10 shrink-0">
+          <div className="flex gap-3 items-center"><button onClick={() => setMobile(!mobile)} className="md:hidden"><Menu /></button><div className="font-semibold text-neutral-800">Reports Workspace</div></div>
+          <div className="flex gap-4 items-center"><div className="font-semibold text-sm">{profile?.full_name}</div></div>
         </header>
 
-        {/* REPORTS CONTENT */}
-        <main className="p-8 overflow-auto flex-1">
-          <div className="flex flex-col gap-6 max-w-7xl mx-auto">
+        <main className="p-5 md:p-8 overflow-auto flex-1 custom-scrollbar">
+          <div className="flex flex-col gap-8 max-w-6xl mx-auto">
+            
             {/* Page Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-3">
-                  <h1 className="font-bold text-3xl tracking-tight text-neutral-900">
-                    Reports
-                  </h1>
-                  <span className="font-medium rounded-full bg-neutral-200/50 text-neutral-900 text-xs px-3 py-1">
-                    Employee View
-                  </span>
-                </div>
-                <p className="max-w-2xl text-neutral-500 text-sm">
-                  View your performance summaries, quarterly progress, and
-                  downloadable reports for the current goal cycle.
-                </p>
+              <div>
+                <h1 className="font-bold text-3xl tracking-tight text-neutral-900 mb-1">Performance Analytics</h1>
+                <p className="text-neutral-500 text-sm">Detailed breakdown of your personal and shared goals.</p>
               </div>
               <div className="flex items-center gap-3">
-                <Button 
-                  onClick={handleExportPDF}
-                  className="bg-[#0F1729] hover:bg-[#0F1729]/90 text-white gap-2 rounded-xl"
-                >
-                  <Download className="size-4" />
-                  Export PDF
+                <Button onClick={handleExportPDF} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 rounded-xl shadow-sm">
+                  <Download className="size-4" /> Export PDF
                 </Button>
-                <Button
-                  onClick={handleExportCSV}
-                  className="text-neutral-950 border-neutral-200 gap-2 rounded-xl"
-                  variant="outline"
-                >
-                  <FileSpreadsheet className="size-4" />
-                  Export CSV
+                <Button onClick={handleExportCSV} className="text-neutral-700 border-neutral-300 gap-2 rounded-xl bg-white hover:bg-neutral-50" variant="outline">
+                  <FileSpreadsheet className="size-4" /> Export CSV
                 </Button>
               </div>
             </div>
 
             {/* Top Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="shadow-sm rounded-2xl border-neutral-200/60 p-6">
-                <CardContent className="p-0 flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-neutral-500 text-sm">Overall Progress</span>
-                    <TrendingUp className="size-4 text-indigo-600" />
-                  </div>
-                  <div className="font-semibold text-3xl">{overallProgress}%</div>
-                  <p className="text-neutral-500 text-xs">Across {activeGoals} active goals</p>
-                </CardContent>
-              </Card>
-              <Card className="shadow-sm rounded-2xl border-neutral-200/60 p-6">
-                <CardContent className="p-0 flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-neutral-500 text-sm">Goals Completed</span>
-                    <CheckCircle2 className="size-4 text-emerald-600" />
-                  </div>
-                  <div className="font-semibold text-3xl">{completedGoals} / {activeGoals}</div>
-                  <p className="text-neutral-500 text-xs">{activeGoals - completedGoals} goals remain in progress</p>
-                </CardContent>
-              </Card>
-              <Card className="shadow-sm rounded-2xl border-neutral-200/60 p-6">
-                <CardContent className="p-0 flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-neutral-500 text-sm">Goal Sheet Status</span>
-                    <CalendarRange className="size-4 text-amber-600" />
-                  </div>
-                  <div className="font-semibold text-xl mt-1 capitalize">{sheet?.submission_status || 'Draft'}</div>
-                  <p className="text-neutral-500 text-xs mt-1">Current cycle status</p>
-                </CardContent>
-              </Card>
-              <Card className="shadow-sm rounded-2xl border-neutral-200/60 p-6">
-                <CardContent className="p-0 flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-neutral-500 text-sm">Total Weightage</span>
-                    <Users className="size-4 text-blue-600" />
-                  </div>
-                  <div className="font-semibold text-3xl">
-                    {goals.reduce((acc, curr) => acc + (Number(curr.weightage) || 0), 0)}%
-                  </div>
-                  <p className="text-neutral-500 text-xs">Accumulated goal impact</p>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <StatCard title="Personal Progress" value={`${overallProgress}%`} sub={`Avg across ${activePersonal} personal goals`} icon={TrendingUp} color="indigo" />
+              <StatCard title="Personal Completed" value={`${completedPersonal}`} sub={`${activePersonal - completedPersonal} in progress`} icon={CheckCircle2} color="emerald" />
+              <StatCard title="Total Shared Goals" value={totalShared} sub="Assigned by managers" icon={Users} color="amber" />
+              <StatCard title="Submitted Shared" value={submittedShared} sub={`${totalShared - submittedShared} awaiting submission`} icon={Send} color="blue" />
             </div>
 
-            {/* Middle Row Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_0.85fr] gap-6">
-              {/* Performance Summary */}
-              <Card className="shadow-sm rounded-2xl border-neutral-200/60 p-6 flex flex-col gap-4">
-                <CardHeader className="p-0 flex flex-col gap-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col gap-1">
-                      <CardTitle className="text-xl">Performance Summary</CardTitle>
-                      <CardDescription>Goal completion overview and progress timeline</CardDescription>
-                    </div>
-                    <Badge className="rounded-full px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-0">
-                      FY 2024–25
-                    </Badge>
+            {/* Performance Summary Chart (Full Width) */}
+            <Card className="shadow-sm rounded-2xl border-neutral-200/60 p-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl">Personal Goal Breakdown</CardTitle>
+                <CardDescription>Current status of your personal goal sheet</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                  <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100 p-5">
+                    <div className="text-emerald-700 text-sm font-semibold mb-2 flex items-center gap-2"><CheckCircle2 size={16}/> Completed</div>
+                    <div className="font-bold text-emerald-800 text-4xl">{completedPersonal}</div>
                   </div>
-                </CardHeader>
-                <CardContent className="p-0 flex flex-col gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-2xl bg-neutral-50 border border-neutral-100 p-4">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium text-sm">Current Progress</span>
-                        <span className="font-semibold text-indigo-600 text-sm">Active</span>
-                      </div>
-                      <div className="rounded-full bg-neutral-200 mt-3 h-2 overflow-hidden">
-                        <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${overallProgress}%` }} />
-                      </div>
-                      <p className="text-neutral-500 text-xs mt-2">Overall achievement is {overallProgress}%</p>
-                    </div>
-                    <div className="rounded-2xl bg-neutral-50 border border-neutral-100 p-4">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium text-sm">Q2 Target</span>
-                        <span className="font-semibold text-amber-600 text-sm">In Progress</span>
-                      </div>
-                      <div className="rounded-full bg-neutral-200 mt-3 h-2 overflow-hidden">
-                        <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `68%` }} />
-                      </div>
-                      <p className="text-neutral-500 text-xs mt-2">Check-in cycle completion</p>
-                    </div>
+                  <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100/50 border border-indigo-100 p-5">
+                    <div className="text-indigo-700 text-sm font-semibold mb-2 flex items-center gap-2"><TrendingUp size={16}/> On Track</div>
+                    <div className="font-bold text-indigo-800 text-4xl">{onTrackPersonal}</div>
                   </div>
+                  <div className="rounded-xl bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-100 p-5">
+                    <div className="text-rose-700 text-sm font-semibold mb-2 flex items-center gap-2"><BarChart3 size={16}/> Behind</div>
+                    <div className="font-bold text-rose-800 text-4xl">{behindPersonal}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                  <div className="rounded-2xl border border-neutral-200/60 p-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="size-4 text-neutral-900" />
-                        <span className="font-semibold text-sm">Goal Completion Breakdown</span>
-                      </div>
-                      <span className="text-neutral-500 text-xs">By status</span>
-                    </div>
-                    <div className="grid grid-cols-3 mt-4 gap-3 text-center md:text-left">
-                      <div className="rounded-xl bg-emerald-50/80 border border-emerald-100 p-3">
-                        <div className="text-emerald-700 text-xs font-medium">Completed</div>
-                        <div className="font-semibold text-emerald-700 text-2xl mt-1">{completedGoals}</div>
-                      </div>
-                      <div className="rounded-xl bg-amber-50/80 border border-amber-100 p-3">
-                        <div className="text-amber-700 text-xs font-medium">On Track</div>
-                        <div className="font-semibold text-amber-700 text-2xl mt-1">{onTrackGoals}</div>
-                      </div>
-                      <div className="rounded-xl bg-red-50/80 border border-red-100 p-3">
-                        <div className="text-red-700 text-xs font-medium">Behind</div>
-                        <div className="font-semibold text-red-700 text-2xl mt-1">{behindGoals}</div>
-                      </div>
-                    </div>
+            {/* Performance by Focus Area */}
+            <Card className="shadow-sm rounded-2xl border-neutral-200/60 p-1 mb-8">
+              <CardHeader>
+                <CardTitle className="text-xl flex items-center gap-2"><Layers size={20} className="text-indigo-500"/> Personal Focus Areas</CardTitle>
+                <CardDescription>Average progress distribution across your thrust areas</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {Object.keys(thrustAreaStats).length === 0 ? (
+                  <div className="text-center py-8 text-neutral-400 font-medium bg-neutral-50 rounded-xl border border-dashed">No focus areas defined yet.</div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {Object.keys(thrustAreaStats).map(area => {
+                      const stats = thrustAreaStats[area];
+                      const avgProgress = Math.round(stats.progress / stats.count);
+                      return (
+                        <div key={area} className="rounded-xl border border-neutral-200 bg-white p-5 hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="font-bold text-neutral-900 mb-1">{area}</h3>
+                              <span className="text-xs font-semibold text-neutral-500 bg-neutral-100 px-2 py-1 rounded-md">{stats.count} Goal{stats.count > 1 ? 's' : ''}</span>
+                            </div>
+                            <Badge variant="outline" className="text-indigo-700 bg-indigo-50 border-indigo-200">{stats.weight}% Wt</Badge>
+                          </div>
+                          
+                          <div>
+                            <div className="flex justify-between text-sm mb-1.5 font-medium">
+                              <span className="text-neutral-600">Avg. Progress</span>
+                              <span className={avgProgress >= 100 ? "text-emerald-600" : "text-indigo-600"}>{avgProgress}%</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-neutral-100 overflow-hidden">
+                              <div className={`h-full rounded-full transition-all duration-500 ${avgProgress >= 100 ? "bg-emerald-500" : "bg-indigo-500"}`} style={{ width: `${avgProgress}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </CardContent>
+            </Card>
 
-              {/* Reports Center */}
-              <Card className="shadow-sm rounded-2xl border-neutral-200/60 p-6 flex flex-col gap-4">
-                <CardHeader className="p-0 flex flex-col gap-2">
-                  <CardTitle className="text-xl">Reports Center</CardTitle>
-                  <CardDescription>Quick access to your downloadable reports</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0 flex flex-col gap-3">
-                  <div 
-                    onClick={handleExportPDF}
-                    className="rounded-2xl border border-neutral-200/60 bg-white hover:bg-neutral-50 transition-colors cursor-pointer flex p-4 items-start gap-3"
-                  >
-                    <div className="size-10 rounded-xl bg-neutral-100 text-neutral-700 flex justify-center items-center shrink-0">
-                      <FileText className="size-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center gap-3">
-                        <span className="font-medium text-sm">Goal Sheet Report (PDF)</span>
-                        <Badge className="rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-0">
-                          {sheet?.submission_status || 'Draft'}
-                        </Badge>
-                      </div>
-                      <p className="text-neutral-500 text-xs mt-1">Includes all goals, weightage, and current progress.</p>
-                    </div>
-                  </div>
-                  <div 
-                    onClick={handleExportCSV}
-                    className="rounded-2xl border border-neutral-200/60 bg-white hover:bg-neutral-50 transition-colors cursor-pointer flex p-4 items-start gap-3"
-                  >
-                    <div className="size-10 rounded-xl bg-neutral-100 text-neutral-700 flex justify-center items-center shrink-0">
-                      <CalendarCheck2 className="size-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center gap-3">
-                        <span className="font-medium text-sm">Quarterly Check-in Report (CSV)</span>
-                        <Badge className="rounded-full" variant="outline">Q2</Badge>
-                      </div>
-                      <p className="text-neutral-500 text-xs mt-1">Summarizes planned vs actual achievements in a spreadsheet.</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </main>
       </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #E5E7EB; border-radius: 20px; }
+      `}} />
     </div>
   );
 }
 
-// Re-usable Sidebar Item Component
+function StatCard({ title, value, sub, icon: Icon, color, isText }: any) {
+  const colorMap: any = {
+    indigo: "text-indigo-600 bg-indigo-50",
+    emerald: "text-emerald-600 bg-emerald-50",
+    amber: "text-amber-600 bg-amber-50",
+    blue: "text-blue-600 bg-blue-50",
+  };
+
+  return (
+    <div className="rounded-2xl border border-neutral-200/60 bg-white p-5 shadow-sm">
+      <div className="flex justify-between items-start mb-2">
+        <p className="text-sm font-semibold text-neutral-500">{title}</p>
+        <div className={`p-2 rounded-lg ${colorMap[color]}`}><Icon size={18} /></div>
+      </div>
+      <h3 className={`text-3xl font-bold text-neutral-900 ${isText ? 'capitalize' : ''}`}>{value}</h3>
+      <p className="mt-1 text-xs text-neutral-500 font-medium">{sub}</p>
+    </div>
+  );
+}
+
 function Item({ icon: Icon, href, label, active }: any) {
   return (
-    <Link
-      href={href}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-        active
-          ? "bg-indigo-600 text-white font-medium"
-          : "text-white/70 hover:bg-white/10 hover:text-white"
-      }`}
-    >
-      <Icon size={18} />
-      {label}
+    <Link href={href} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${active ? "bg-indigo-600 text-white font-medium" : "text-white/70 hover:bg-white/10 hover:text-white"}`}>
+      <Icon size={18} /> {label}
     </Link>
   );
 }

@@ -20,12 +20,11 @@ export async function createGoal(goalData: any) {
     }
 
     // Fetch goal sheet
-    const { data: goalSheet, error: goalSheetError } =
-      await supabase
-        .from("goal_sheets")
-        .select("*")
-        .eq("employee_id", user.id)
-        .single();
+    const { data: goalSheet, error: goalSheetError } = await supabase
+      .from("goal_sheets")
+      .select("*")
+      .eq("employee_id", user.id)
+      .single();
 
     if (goalSheetError || !goalSheet) {
       return {
@@ -66,8 +65,7 @@ export async function createGoal(goalData: any) {
 
     // Total weightage validation
     const totalWeightage = goals.reduce(
-      (sum: number, goal: any) =>
-        sum + Number(goal.weightage),
+      (sum: number, goal: any) => sum + Number(goal.weightage),
       0
     );
 
@@ -77,7 +75,29 @@ export async function createGoal(goalData: any) {
       };
     }
 
-    // Insert goal
+    // --- NEW LOGIC: Determine Active Quarter dynamically ---
+    const { data: activeCycle } = await supabase
+      .from("goal_cycles")
+      .select("*")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    let assignedQuarter = "Q1"; // Default for Goal Setting phase
+
+    if (activeCycle) {
+      const now = new Date();
+      const isWithin = (start?: string, end?: string) => {
+        if (!start || !end) return false;
+        return now >= new Date(start) && now <= new Date(end);
+      };
+
+      if (isWithin(activeCycle.q1_start, activeCycle.q1_end)) assignedQuarter = "Q1";
+      else if (isWithin(activeCycle.q2_start, activeCycle.q2_end)) assignedQuarter = "Q2";
+      else if (isWithin(activeCycle.q3_start, activeCycle.q3_end)) assignedQuarter = "Q3";
+      else if (isWithin(activeCycle.q4_start, activeCycle.q4_end)) assignedQuarter = "Q4";
+    }
+
+    // Insert goal with the dynamically assigned quarter
     const { data, error } = await supabase
       .from("goals")
       .insert([
@@ -89,6 +109,7 @@ export async function createGoal(goalData: any) {
           uom_type: goalData.uomType,
           target_value: Number(goalData.targetValue),
           weightage,
+          quarter: assignedQuarter, // Auto-assigned quarter
         },
       ])
       .select();
@@ -105,7 +126,6 @@ export async function createGoal(goalData: any) {
     };
   } catch (err) {
     console.log(err);
-
     return {
       error: "Something went wrong",
     };
@@ -129,12 +149,11 @@ export async function getGoals() {
     }
 
     // Fetch goal sheet
-    const { data: goalSheet, error: goalSheetError } =
-      await supabase
-        .from("goal_sheets")
-        .select("*")
-        .eq("employee_id", user.id)
-        .single();
+    const { data: goalSheet, error: goalSheetError } = await supabase
+      .from("goal_sheets")
+      .select("*")
+      .eq("employee_id", user.id)
+      .single();
 
     if (goalSheetError || !goalSheet) {
       return {
@@ -149,18 +168,17 @@ export async function getGoals() {
     const { data, error } = await supabase
       .from("goals")
       .select("*")
-      .eq("goal_sheet_id", goalSheet.id);
+      .eq("goal_sheet_id", goalSheet.id)
+      .order("created_at", { ascending: true }); // Keep goals in consistent order
 
     return {
       data: data || [],
       error,
       locked: goalSheet.locked || false,
-      submissionStatus:
-        goalSheet.submission_status || "draft",
+      submissionStatus: goalSheet.submission_status || "draft",
     };
   } catch (err) {
     console.log(err);
-
     return {
       data: [],
       error: "Something went wrong",
@@ -169,13 +187,9 @@ export async function getGoals() {
     };
   }
 }
-export async function updateGoal(
-  goalId: string,
-  goalData: any
-) {
-  try {
-    const supabase = createClient();
 
+export async function updateGoal(goalId: string, goalData: any) {
+  try {
     const { data, error } = await supabase
       .from("goals")
       .update({
@@ -192,33 +206,20 @@ export async function updateGoal(
     return { data, error };
   } catch (err) {
     console.log(err);
-
-    return {
-      error: "Something went wrong",
-    };
+    return { error: "Something went wrong" };
   }
 }
 
-export async function deleteGoal(
-  goalId: string
-) {
+export async function deleteGoal(goalId: string) {
   try {
-    const supabase = createClient();
-
-    const { error } = await supabase
-      .from("goals")
-      .delete()
-      .eq("id", goalId);
-
+    const { error } = await supabase.from("goals").delete().eq("id", goalId);
     return { error };
   } catch (err) {
     console.log(err);
-
-    return {
-      error: "Something went wrong",
-    };
+    return { error: "Something went wrong" };
   }
 }
+
 export async function updateGoalProgress(
   goalId: string,
   progress: number,
@@ -226,15 +227,12 @@ export async function updateGoalProgress(
   employeeComment: string
 ) {
   try {
-    const supabase = createClient();
-
     const { data, error } = await supabase
       .from("goals")
       .update({
         progress,
         achievement,
-        employee_comment:
-          employeeComment,
+        employee_comment: employeeComment,
       })
       .eq("id", goalId)
       .select();
@@ -242,176 +240,58 @@ export async function updateGoalProgress(
     return { data, error };
   } catch (err) {
     console.log(err);
-
-    return {
-      error: "Something went wrong",
-    };
+    return { error: "Something went wrong" };
   }
 }
-export async function submitGoalSheet(){
 
-try{
+export async function submitGoalSheet() {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-const supabase =
-createClient();
+    if (!user) return { error: "Login required" };
 
-const {
-data:{
-user,
-},
-}=
-await supabase.auth.getUser();
+    const { data: sheet } = await supabase
+      .from("goal_sheets")
+      .select("*")
+      .eq("employee_id", user.id)
+      .single();
 
-if(
-!user
-){
-return{
-error:
-"Login required",
-};
+    if (sheet.locked) return { error: "Goal sheet locked" };
+
+    const validation = await validateGoalSheet(sheet.id);
+
+    if (!validation.valid) return { error: validation.error };
+
+    return supabase
+      .from("goal_sheets")
+      .update({
+        submission_status: "submitted",
+        locked: true,
+      })
+      .eq("id", sheet.id);
+  } catch {
+    return { error: "Submit failed" };
+  }
 }
 
-const {
-data: sheet,
-}=await supabase
-.from(
-"goal_sheets"
-)
-.select("*")
-.eq(
-"employee_id",
-user.id
-)
-.single();
+export async function validateGoalSheet(goalSheetId: string) {
+  const { data: goals, error } = await supabase
+    .from("goals")
+    .select("*")
+    .eq("goal_sheet_id", goalSheetId);
 
-if(
-sheet.locked
-){
-return{
-error:
-"Goal sheet locked",
-};
-}
+  if (error) return { valid: false, error: "Unable to validate" };
+  if (goals.length > 8) return { valid: false, error: "Maximum 8 goals allowed" };
 
-const validation =
-await validateGoalSheet(
-sheet.id
-);
+  let total = 0;
+  for (const goal of goals) {
+    if (goal.weightage < 10) return { valid: false, error: `Goal "${goal.title}" weightage must be at least 10` };
+    total += goal.weightage;
+  }
 
-if(
-!validation.valid
-){
-return{
-error:
-validation.error,
-};
-}
+  if (total !== 100) return { valid: false, error: `Total weightage must equal 100. Current: ${total}` };
 
-return supabase
-.from(
-"goal_sheets"
-)
-.update({
-
-submission_status:
-"submitted",
-
-locked:
-true,
-
-})
-.eq(
-"id",
-sheet.id
-);
-
-}
-
-catch{
-
-return{
-error:
-"Submit failed",
-};
-
-}
-
-}
-export async function validateGoalSheet(
-goalSheetId: string
-) {
-const supabase =
-createClient();
-
-const {
-data: goals,
-error,
-} =
-await supabase
-.from(
-"goals"
-)
-.select("*")
-.eq(
-"goal_sheet_id",
-goalSheetId
-);
-
-if(
-error
-){
-return{
-valid:false,
-error:
-"Unable to validate",
-};
-}
-
-if(
-goals.length >
-8
-){
-return{
-valid:false,
-error:
-"Maximum 8 goals allowed",
-};
-}
-
-let total =
-0;
-
-for(
-const goal of goals
-){
-
-if(
-goal.weightage <
-10
-){
-return{
-valid:false,
-error:
-`Goal "${goal.title}" weightage must be at least 10`,
-};
-}
-
-total +=
-goal.weightage;
-}
-
-if(
-total !==
-100
-){
-return{
-valid:false,
-error:
-`Total weightage must equal 100. Current: ${total}`,
-};
-}
-
-return{
-valid:true,
-};
+  return { valid: true };
 }

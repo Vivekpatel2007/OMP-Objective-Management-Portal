@@ -21,12 +21,11 @@ export async function getOrCreateGoalSheet() {
     }
 
     // Active cycle
-    const { data: activeCycle } =
-      await supabase
-        .from("goal_cycles")
-        .select("*")
-        .eq("status", "active")
-        .single();
+    const { data: activeCycle } = await supabase
+  .from("goal_cycles")
+  .select("*")
+  .eq("is_active", true) 
+  .single();
 
     if (!activeCycle) {
       return {

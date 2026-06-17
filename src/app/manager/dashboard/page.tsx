@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import {
   BarChart3,
   Bell,
@@ -23,6 +24,7 @@ import {
   UsersRound,
   X,
   Menu,
+  LogOut
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +107,12 @@ export default function ManagerDashboard() {
     }
   }
 
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
   // --- ACTIONS ---
 
   const handleApprove = async (sheetId: string) => {
@@ -177,8 +185,12 @@ export default function ManagerDashboard() {
           />
           <Item icon={ClipboardCheck} href="/manager/checkins" label="Check-ins" />
           <Item icon={Users} href="/manager/shared-goals" label="Shared Goals" />
-          <Item icon={BarChart3} href="/manager/reports" label="Team Reports" />
-          <Item icon={ScrollText} href="/manager/audit" label="Audit Log" />
+          
+          <div className="pt-4 mt-4 border-t border-white/10">
+            <button onClick={handleSignOut} className="flex w-full gap-3 px-4 py-3 rounded-xl transition text-white/70 hover:bg-rose-500/10 hover:text-rose-500 text-left items-center text-sm">
+              <LogOut size={18} /> Sign Out
+            </button>
+          </div>
         </nav>
       </aside>
 
@@ -197,10 +209,7 @@ export default function ManagerDashboard() {
             </div>
           </div>
           <div className="flex gap-4 items-center">
-            <Link href="/notifications" className="relative text-neutral-500 hover:text-neutral-900 transition-colors">
-              <Bell size={20} />
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-600 rounded-full" />
-            </Link>
+            
             <div className="flex items-center gap-3 border-l pl-4">
               <div className="flex flex-col items-end">
                 <span className="leading-none font-semibold text-sm">
@@ -262,7 +271,7 @@ export default function ManagerDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0 mt-3 flex flex-col gap-1">
-                  <div className="font-bold text-orange-600 text-2xl">0</div> {/* Mocked until check-in flag added */}
+                  <div className="font-bold text-orange-600 text-2xl">0</div>
                   <span className="text-neutral-500 text-xs">Updates due this week</span>
                 </CardContent>
               </Card>
@@ -436,15 +445,13 @@ export default function ManagerDashboard() {
                     <CardTitle className="font-semibold text-lg">Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="flex p-0 flex-col gap-3 mt-1">
-                    <Button className="bg-[#0F1729] hover:bg-[#0F1729]/90 text-white justify-start gap-2 h-10 rounded-xl">
-                      <UsersRound className="size-4" />
-                      Assign Shared Goal
-                    </Button>
-                    <Button variant="outline" className="justify-start gap-2 h-10 rounded-xl">
-                      <Download className="size-4" />
-                      Export Team Report (CSV)
-                    </Button>
-                   
+                    <Link href="/manager/shared-goals" className="w-full">
+                      <Button className="w-full bg-[#0F1729] hover:bg-[#0F1729]/90 text-white justify-start gap-2 h-10 rounded-xl">
+                        <UsersRound className="size-4" />
+                        Assign Shared Goal
+                      </Button>
+                    </Link>
+                    
                   </CardContent>
                 </Card>
               </div>

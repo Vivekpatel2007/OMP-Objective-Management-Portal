@@ -178,3 +178,57 @@ export async function getGoalSheetDetails(
     };
   }
 }
+// Add these to the end of src/services/managerservice.ts
+
+export async function getSubmittedSharedGoals() {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: [], error: "Not authenticated" };
+
+    // 1. Get shared goals assigned by this manager
+    const { data: sharedGoals } = await supabase
+      .from("shared_goals")
+      .select("id")
+      .eq("primary_owner", user.id);
+
+    if (!sharedGoals || sharedGoals.length === 0) return { data: [] };
+    const sgIds = sharedGoals.map(sg => sg.id);
+
+    // 2. Get submitted assignments for these goals
+    const { data: assignments, error } = await supabase
+      .from("shared_goal_assignments")
+      .select(`
+        *,
+        employee:profiles(*),
+        shared_goals(*)
+      `)
+      .in("shared_goal_id", sgIds)
+      .in("status", ["submitted", "approved", "rejected"]);
+
+    return { data: assignments, error };
+  } catch (err) {
+    return { error: "Something went wrong" };
+  }
+}
+
+export async function approveSharedGoal(assignmentId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("shared_goal_assignments")
+    .update({ status: "approved" })
+    .eq("id", assignmentId);
+  return { data, error };
+}
+
+export async function rejectSharedGoal(assignmentId: string, comment: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("shared_goal_assignments")
+    .update({ 
+      status: "rejected", 
+      rejection_reason: comment // Make sure you have a rejection_reason text column in shared_goal_assignments
+    }) 
+    .eq("id", assignmentId);
+  return { data, error };
+}

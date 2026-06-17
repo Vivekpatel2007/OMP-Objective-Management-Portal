@@ -91,6 +91,29 @@ export default function CycleGovernance() {
 
     setSaving(true);
     try {
+      // --- NEW LOGIC: Evaluate the current date against the phase dates ---
+      const now = new Date();
+      
+      const isWithinDateRange = (start?: string, end?: string) => {
+        if (!start || !end) return false;
+        return now >= new Date(start) && now <= new Date(end);
+      };
+
+      // Determine the dynamic status based on the current system date
+      let currentPhaseStatus = "active"; // Fallback status
+      
+      if (isWithinDateRange(cycle.goal_setting_start, cycle.goal_setting_end)) {
+        currentPhaseStatus = "goal_setting";
+      } else if (isWithinDateRange(cycle.q1_start, cycle.q1_end)) {
+        currentPhaseStatus = "q1_checkin";
+      } else if (isWithinDateRange(cycle.q2_start, cycle.q2_end)) {
+        currentPhaseStatus = "q2_checkin";
+      } else if (isWithinDateRange(cycle.q3_start, cycle.q3_end)) {
+        currentPhaseStatus = "q3_checkin";
+      } else if (isWithinDateRange(cycle.q4_start, cycle.q4_end)) {
+        currentPhaseStatus = "q4_checkin";
+      }
+
       const payload = {
         cycle_name: cycle.cycle_name,
         override_enabled: cycle.override_enabled,
@@ -104,8 +127,8 @@ export default function CycleGovernance() {
         q3_end: cycle.q3_end || null,
         q4_start: cycle.q4_start || null,
         q4_end: cycle.q4_end || null,
-        is_active: true,      
-        status: "active",     
+        is_active: true,                 // Keeps the overall cycle active
+        status: currentPhaseStatus,      // Saves the specific calculated phase
       };
 
       let savedCycleId = null;
@@ -126,6 +149,7 @@ export default function CycleGovernance() {
         savedCycleId = data.id;
       }
 
+      // Deactivate all OTHER cycles
       if (savedCycleId) {
         const { error: deactivateError } = await supabase
           .from("goal_cycles")
@@ -135,7 +159,7 @@ export default function CycleGovernance() {
         if (deactivateError) throw deactivateError;
       }
 
-      alert(`Cycle "${cycle.cycle_name}" saved and set to active!`);
+      alert(`Cycle "${cycle.cycle_name}" saved. Phase set to: ${currentPhaseStatus.replace('_', ' ')}`);
       loadActiveCycle(); 
       
     } catch (error) {

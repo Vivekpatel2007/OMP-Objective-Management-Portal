@@ -21,13 +21,11 @@ export async function getAdminDashboard() {
         .from("goal_sheets")
         .select("*");
 
-    const {
-      data: activeCycle,
-    } = await supabase
-      .from("goal_cycles")
-      .select("*")
-      .eq("status", "active")
-      .single();
+    const { data: activeCycle } = await supabase
+  .from("goal_cycles")
+  .select("*")
+  .eq("is_active", true) 
+  .single();
 
     return {
       employees:

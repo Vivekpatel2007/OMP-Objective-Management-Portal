@@ -196,6 +196,9 @@ export default function AdminDashboard() {
           <Link href="/admin/shared-goals" className="rounded-lg text-slate-400 hover:bg-white/5 hover:text-white text-sm font-medium flex px-4 py-3 items-center gap-3 transition-colors">
             <Share2 className="size-4" /> Shared Goals
           </Link>
+          <Link href="/admin/goal-sheets" className="rounded-lg text-slate-400 hover:bg-white/5 hover:text-white text-sm font-medium flex px-4 py-3 items-center gap-3 transition-colors">
+            <Share2 className="size-4" /> Goal Sheets
+          </Link>
         </nav>
         
         {/* User Profile & Logout */}
@@ -358,7 +361,7 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <Link 
-                              href="/admin/cycle-governance"
+                              href="/admin/cycle-configurations"
                               className="text-blue-600 hover:text-blue-800 text-sm font-semibold transition-colors"
                             >
                               View Config

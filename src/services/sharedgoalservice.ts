@@ -104,356 +104,145 @@ export async function getEmployees() {
 CREATE SHARED GOAL
 */
 
-export async function createSharedGoal(
-goal:any
-){
+export async function createSharedGoal(goal: any) {
+  const supabase = createClient();
 
-const supabase=
-createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-const profile=
-await getCurrentUserProfile();
+  if (!user) {
+    return { error: "User not authenticated" };
+  }
 
-if(
-!profile
-){
+  // Insert shared goal
+  const { data: sharedGoal, error } = await supabase
+    .from("shared_goals")
+    .insert({
+      title: goal.title,
+      description: goal.description,
+      target_value: goal.target,
+      uom_type: goal.uom,
+      assignment_type: goal.type,
+      department: goal.department,
+      primary_owner: user.id,
+      quarter: goal.quarter || "Q1", // <--- ADD THIS LINE HERE
+    })
+    .select()
+    .single();
 
-return{
-error:
-"User profile not found",
-};
+  if (error || !sharedGoal) {
+    console.log(error);
+    return { error: error?.message || "Failed to create shared goal" };
+  }
 
-}
+  // --- Assign to Employees ---
+  let employeesToAssign: any[] = [];
 
-const payload={
+  if (goal.type === "all") {
+    const { data: allEmp } = await supabase.from("profiles").select("id").eq("role", "employee");
+    employeesToAssign = allEmp || [];
+  } else if (goal.type === "department") {
+    const { data: deptEmp } = await supabase.from("profiles").select("id").eq("role", "employee").eq("department", goal.department);
+    employeesToAssign = deptEmp || [];
+  } else if (goal.type === "employee") {
+    employeesToAssign = goal.employees || [];
+  }
 
-title:
-goal.title,
+  if (employeesToAssign.length === 0) {
+    return { data: sharedGoal };
+  }
 
-description:
-goal.description,
+  const assignments = employeesToAssign.map((emp: any) => ({
+    shared_goal_id: sharedGoal.id,
+    employee_id: emp.id,
+    weightage: goal.weightage || 10,
+    status: "draft"
+  }));
 
-target_value:
-Number(
-goal.target
-)||0,
+  const { error: assignError } = await supabase.from("shared_goal_assignments").insert(assignments);
 
-uom_type:
-goal.uom,
+  if (assignError) {
+    console.log(assignError);
+    return { error: assignError.message };
+  }
 
-assignment_type:
-goal.type,
-
-department:
-goal.department||
-profile.department||
-null,
-
-primary_owner:
-profile.id,
-
-};
-
-console.log(
-"Creating:",
-payload
-);
-
-const{
-data:sharedGoal,
-error:goalError,
-}=
-await supabase
-.from(
-"shared_goals"
-)
-.insert(
-payload
-)
-.select()
-.single();
-
-if(
-goalError
-){
-
-console.log(
-goalError
-);
-
-return{
-error:
-goalError.message,
-};
-
-}
-
-let recipients:any[]=[];
-
-/*
-ALL
-*/
-
-if(
-goal.type==="all"
-){
-
-const{
-data,
-error,
-}=
-await supabase
-.from(
-"profiles"
-)
-.select("*")
-.eq(
-"role",
-"employee"
-);
-
-if(error){
-
-return{
-error:
-error.message,
-};
-
-}
-
-recipients=
-data||
-[];
-
-}
-
-/*
-DEPARTMENT
-*/
-
-else if(
-goal.type==="department"
-){
-
-const dept=
-goal.department||
-profile.department;
-
-const{
-data,
-error,
-}=
-await supabase
-.from(
-"profiles"
-)
-.select("*")
-.eq(
-"role",
-"employee"
-)
-.eq(
-"department",
-dept);
-
-if(error){
-
-return{
-error:
-error.message,
-};
-
-}
-
-recipients=
-data||
-[];
-
-}
-
-/*
-EMPLOYEE
-*/
-
-else{
-
-recipients=
-goal.employees||
-[];
-
-}
-
-if(
-recipients.length===0
-){
-
-return{
-error:
-"No employees selected",
-};
-
-}
-
-const assignments=
-recipients.map(
-(
-emp:any
-)=>({
-
-shared_goal_id:
-sharedGoal.id,
-
-employee_id:
-emp.id,
-
-weightage:
-goal.weightage||
-10,
-
-})
-);
-
-console.log(
-assignments
-);
-
-const{
-error:assignError,
-}=
-await supabase
-.from(
-"shared_goal_assignments"
-)
-.insert(
-assignments
-);
-
-if(
-assignError
-){
-
-console.log(
-assignError
-);
-
-return{
-error:
-assignError.message,
-};
-
-}
-
-return{
-data:
-sharedGoal,
-};
-
+  return { data: sharedGoal };
 }
 
 /*
 SHOW SHARED GOALS
 */
 
-export async function getSharedGoals(){
+/*
+SHOW SHARED GOALS
+*/
+export async function getSharedGoals() {
+  const supabase = createClient();
+  const profile = await getCurrentUserProfile();
 
-const supabase=
-createClient();
+  if (!profile) {
+    return { data: [] };
+  }
 
-const profile=
-await getCurrentUserProfile();
+  // Fetch shared goals AND their associated assignments' statuses
+  let query = supabase
+    .from("shared_goals")
+    .select("*, shared_goal_assignments(status)")
+    .order("created_at", { ascending: false });
 
-if(
-!profile
-){
+  if (profile.role === "manager") {
+    query = query.eq("department", profile.department);
+  }
 
-return{
-data:[]
-};
-
+  return query;
 }
+export async function getEmployeeSharedGoals() {
+  const supabase = createClient();
 
-let query=
-supabase
-.from(
-"shared_goals"
-)
-.select("*")
-.order(
-"created_at",
-{
-ascending:
-false,
-}
-);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-if(
-profile.role==="manager"
-){
+  if (!user) {
+    return { data: [] };
+  }
 
-query=
-query.eq(
-"department",
-profile.department
-);
+  // Fetch assignments and ALL shared_goal fields
+  const { data: assignments, error } = await supabase
+    .from("shared_goal_assignments")
+    .select(`
+      *,
+      shared_goals ( * )
+    `)
+    .eq("employee_id", user.id);
 
-}
+  if (error || !assignments) {
+    return { data: [] };
+  }
 
-return query;
+  // Fetch the names of the managers/admins who assigned these goals
+  const ownerIds = [...new Set(assignments.map(a => a.shared_goals?.primary_owner).filter(Boolean))];
+  
+  let profiles: any[] = [];
+  if (ownerIds.length > 0) {
+    const { data: pData } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", ownerIds);
+    profiles = pData || [];
+  }
 
-}
+  // Enrich the data with the owner's name
+  const enrichedAssignments = assignments.map(a => ({
+    ...a,
+    shared_goals: {
+      ...a.shared_goals,
+      owner_name: profiles.find(p => p.id === a.shared_goals?.primary_owner)?.full_name || "Admin / Manager"
+    }
+  }));
 
-export async function getEmployeeSharedGoals(){
-
-const supabase=
-createClient();
-
-const{
-data:{
-user,
-},
-}=await supabase.auth.getUser();
-
-if(
-!user
-){
-
-return{
-data:[]
-};
-
-}
-
-return supabase
-
-.from(
-"shared_goal_assignments"
-)
-
-.select(`
-
-*,
-
-shared_goals(
-
-id,
-
-title,
-
-description,
-
-target_value,
-
-uom_type
-
-)
-
-`)
-
-.eq(
-"employee_id",
-user.id
-);
-
+  return { data: enrichedAssignments };
 }
 
 export async function updateSharedWeightage(
