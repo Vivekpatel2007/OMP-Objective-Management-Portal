@@ -128,7 +128,7 @@ export default function ManagerDashboard() {
 
   const handleReject = async (sheetId: string) => {
     if (!confirm("Are you sure you want to return this goal sheet for rework?")) return;
-    const res = await rejectGoalSheet(sheetId);
+    const res = await rejectGoalSheet(sheetId, "Returned for rework from dashboard");
     if (!res.error) {
       alert("Goal sheet returned to employee.");
       loadData(); // Refresh UI
