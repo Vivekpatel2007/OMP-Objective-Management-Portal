@@ -21,7 +21,7 @@ export default function LoginPage() {
       alert(error.message);
       return;
     }
-  const userId = data.user?.id;
+  const userId = data?.user?.id;
 
   if (!userId) {
     alert("User not found");
