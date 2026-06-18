@@ -90,7 +90,7 @@ export default function LoginPage() {
 
         <div className="hidden w-[45%] rounded-[40px] bg-gradient-to-br from-blue-600 to-indigo-700 p-14 text-white lg:block">
           <div>
-            <h1 className="text-6xl font-black">AtomQuest</h1>
+            <h1 className="text-6xl font-black">OMP</h1>
 
             <p className="mt-6 text-xl">Goal Setting & Tracking Portal</p>
           </div>
