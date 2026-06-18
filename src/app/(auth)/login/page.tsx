@@ -35,53 +35,53 @@ export default function LoginPage() {
   }
 
   async function handleLogin(e: React.FormEvent) {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  // 1. Attempt Sign In
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    // 1. Attempt Sign In
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) {
-    setError(error.message);
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Fetch User Profile to determine role
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single();
+
     setLoading(false);
-    return;
+
+    if (profileError || !profile) {
+      setError("Could not load user profile.");
+      return;
+    }
+
+    // 3. Dynamic Routing based on Role
+    router.refresh();
+
+    switch (profile.role) {
+      case "admin":
+        router.push("/admin/dashboard");
+        break;
+      case "manager":
+        router.push("/manager/dashboard");
+        break;
+      case "employee":
+        router.push("/employee/dashboard");
+        break;
+      default:
+        router.push("/");
+    }
   }
-
-  // 2. Fetch User Profile to determine role
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", data.user.id)
-    .single();
-
-  setLoading(false);
-
-  if (profileError || !profile) {
-    setError("Could not load user profile.");
-    return;
-  }
-
-  // 3. Dynamic Routing based on Role
-  router.refresh();
-  
-  switch (profile.role) {
-    case "admin":
-      router.push("/admin/dashboard");
-      break;
-    case "manager":
-      router.push("/manager/dashboard");
-      break;
-    case "employee":
-      router.push("/employee/dashboard");
-      break;
-    default:
-      router.push("/");
-  }
-}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100">
@@ -90,7 +90,7 @@ export default function LoginPage() {
 
         <div className="hidden w-[45%] rounded-[40px] bg-gradient-to-br from-blue-600 to-indigo-700 p-14 text-white lg:block">
           <div>
-            <h1 className="text-6xl font-black">AtomQuest</h1>
+            <h1 className="text-6xl font-black">OMP</h1>
 
             <p className="mt-6 text-xl">Goal Setting & Tracking Portal</p>
           </div>

@@ -19,7 +19,7 @@ import {
   UserPlus,
   Check,
   LogOut,
-  Activity
+  Activity,
 } from "lucide-react";
 
 import {
@@ -121,9 +121,14 @@ export default function SharedGoalsPage() {
     });
   }
 
-  const displayedSharedGoals = profile?.role === "manager"
-    ? sharedGoals.filter(g => g.department === profile.department || g.primary_owner === profile.id)
-    : sharedGoals;
+  const displayedSharedGoals =
+    profile?.role === "manager"
+      ? sharedGoals.filter(
+          (g) =>
+            g.department === profile.department ||
+            g.primary_owner === profile.id,
+        )
+      : sharedGoals;
 
   if (loading) {
     return (
@@ -146,19 +151,41 @@ export default function SharedGoalsPage() {
             <Target className="size-5" />
           </div>
           <div className="flex flex-col text-white">
-            <span className="leading-tight font-bold text-sm">GoalTrack</span>
-            <span className="leading-tight text-white/50 text-xs">Manager Portal</span>
+            <span className="leading-tight font-bold text-sm">OMP</span>
+            <span className="leading-tight text-white/50 text-xs">
+              Manager Portal
+            </span>
           </div>
         </div>
 
         <nav className="space-y-2 px-3 flex-1 mt-4">
-          <Item icon={LayoutDashboard} href="/manager/dashboard" label="Dashboard" />
-          <Item icon={CheckCircle} href="/manager/approvals/id" label="Approvals" />
-          <Item icon={ClipboardCheck} href="/manager/checkins" label="Check-ins" />
-          <Item icon={Users} href="/manager/shared-goals" label="Shared Goals" active />
+          <Item
+            icon={LayoutDashboard}
+            href="/manager/dashboard"
+            label="Dashboard"
+          />
+          <Item
+            icon={CheckCircle}
+            href="/manager/approvals/id"
+            label="Approvals"
+          />
+          <Item
+            icon={ClipboardCheck}
+            href="/manager/checkins"
+            label="Check-ins"
+          />
+          <Item
+            icon={Users}
+            href="/manager/shared-goals"
+            label="Shared Goals"
+            active
+          />
 
           <div className="pt-4 mt-4 border-t border-white/10">
-            <button onClick={handleSignOut} className="flex w-full gap-3 px-4 py-3 rounded-xl transition text-white/70 hover:bg-rose-500/10 hover:text-rose-500 text-left items-center text-sm">
+            <button
+              onClick={handleSignOut}
+              className="flex w-full gap-3 px-4 py-3 rounded-xl transition text-white/70 hover:bg-rose-500/10 hover:text-rose-500 text-left items-center text-sm"
+            >
               <LogOut size={18} /> Sign Out
             </button>
           </div>
@@ -170,15 +197,19 @@ export default function SharedGoalsPage() {
         {/* HEADER */}
         <header className="bg-white px-5 py-4 border-b flex justify-between items-center z-10 shrink-0">
           <div className="flex gap-3 items-center">
-            <button onClick={() => setMobile(!mobile)} className="md:hidden text-neutral-600 hover:text-neutral-900">
+            <button
+              onClick={() => setMobile(!mobile)}
+              className="md:hidden text-neutral-600 hover:text-neutral-900"
+            >
               {mobile ? <X size={24} /> : <Menu size={24} />}
             </button>
             <div className="flex flex-col">
-              <h1 className="font-semibold text-neutral-950 text-base">Shared Goals</h1>
+              <h1 className="font-semibold text-neutral-950 text-base">
+                Shared Goals
+              </h1>
             </div>
           </div>
           <div className="flex gap-4 items-center">
-            
             <div className="flex items-center gap-3 border-l pl-4">
               <div className="flex flex-col items-end">
                 <span className="leading-none font-semibold text-sm">
@@ -198,67 +229,95 @@ export default function SharedGoalsPage() {
         {/* PAGE CONTENT */}
         <main className="p-4 md:p-8 overflow-auto flex-1">
           <div className="max-w-7xl mx-auto flex flex-col gap-6">
-            
             {/* Page Title Header */}
             <div>
-              <h2 className="text-2xl font-bold text-neutral-900">Assign Shared Goals</h2>
-              <p className="text-neutral-500 mt-1">Create and cascade KPIs to your department or specific employees.</p>
+              <h2 className="text-2xl font-bold text-neutral-900">
+                Assign Shared Goals
+              </h2>
+              <p className="text-neutral-500 mt-1">
+                Create and cascade KPIs to your department or specific
+                employees.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
-              
               {/* LEFT COLUMN: Create Goal Form */}
               <div className="bg-white rounded-2xl border border-neutral-200/60 shadow-sm overflow-hidden flex flex-col">
                 <div className="p-6 border-b border-neutral-100">
-                  <h3 className="font-semibold text-lg text-neutral-900">Goal Details</h3>
+                  <h3 className="font-semibold text-lg text-neutral-900">
+                    Goal Details
+                  </h3>
                 </div>
                 <div className="p-6 flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-neutral-700">Goal Title</label>
+                    <label className="text-sm font-medium text-neutral-700">
+                      Goal Title
+                    </label>
                     <input
                       placeholder="e.g., Increase Q3 Sales Margin"
                       value={goal.title}
-                      onChange={(e) => setGoal({ ...goal, title: e.target.value })}
+                      onChange={(e) =>
+                        setGoal({ ...goal, title: e.target.value })
+                      }
                       className="w-full h-11 px-3 rounded-xl border border-neutral-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-neutral-700">Description</label>
+                    <label className="text-sm font-medium text-neutral-700">
+                      Description
+                    </label>
                     <textarea
                       placeholder="Provide detailed expectations..."
                       value={goal.description}
-                      onChange={(e) => setGoal({ ...goal, description: e.target.value })}
+                      onChange={(e) =>
+                        setGoal({ ...goal, description: e.target.value })
+                      }
                       className="w-full min-h-[100px] p-3 rounded-xl border border-neutral-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-neutral-700">Target Value</label>
+                      <label className="text-sm font-medium text-neutral-700">
+                        Target Value
+                      </label>
                       <input
                         type="number"
                         placeholder="0"
                         value={goal.target}
-                        onChange={(e) => setGoal({ ...goal, target: e.target.value })}
+                        onChange={(e) =>
+                          setGoal({ ...goal, target: e.target.value })
+                        }
                         className="w-full h-11 px-3 rounded-xl border border-neutral-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-neutral-700">Weightage (%)</label>
+                      <label className="text-sm font-medium text-neutral-700">
+                        Weightage (%)
+                      </label>
                       <input
                         type="number"
                         placeholder="10"
                         value={goal.weightage}
-                        onChange={(e) => setGoal({ ...goal, weightage: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setGoal({
+                            ...goal,
+                            weightage: Number(e.target.value),
+                          })
+                        }
                         className="w-full h-11 px-3 rounded-xl border border-neutral-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-neutral-700">Unit of Measure</label>
+                      <label className="text-sm font-medium text-neutral-700">
+                        Unit of Measure
+                      </label>
                       <select
                         value={goal.uom}
-                        onChange={(e) => setGoal({ ...goal, uom: e.target.value })}
+                        onChange={(e) =>
+                          setGoal({ ...goal, uom: e.target.value })
+                        }
                         className="w-full h-11 px-3 rounded-xl border border-neutral-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="min">Minimum</option>
@@ -269,8 +328,10 @@ export default function SharedGoalsPage() {
                   </div>
 
                   <div className="border-t border-neutral-100 pt-5 mt-2">
-                    <h4 className="font-semibold text-neutral-900 mb-4">Assignment Scope</h4>
-                    
+                    <h4 className="font-semibold text-neutral-900 mb-4">
+                      Assignment Scope
+                    </h4>
+
                     <div className="flex flex-col sm:flex-row gap-3 mb-5">
                       <button
                         onClick={() => setGoal({ ...goal, type: "department" })}
@@ -300,9 +361,12 @@ export default function SharedGoalsPage() {
                           <Users className="size-5" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-neutral-900">Department Wide Goal</p>
+                          <p className="text-sm font-medium text-neutral-900">
+                            Department Wide Goal
+                          </p>
                           <p className="text-xs text-neutral-500">
-                            This goal will be assigned to everyone in the <strong>{profile?.department}</strong> department.
+                            This goal will be assigned to everyone in the{" "}
+                            <strong>{profile?.department}</strong> department.
                           </p>
                         </div>
                       </div>
@@ -321,14 +385,20 @@ export default function SharedGoalsPage() {
                               }`}
                             >
                               <div className="flex flex-col overflow-hidden">
-                                <span className={`font-semibold text-sm truncate ${active ? "text-white" : "text-neutral-900"}`}>
+                                <span
+                                  className={`font-semibold text-sm truncate ${active ? "text-white" : "text-neutral-900"}`}
+                                >
                                   {emp.full_name}
                                 </span>
-                                <span className={`text-xs truncate ${active ? "text-indigo-200" : "text-neutral-500"}`}>
+                                <span
+                                  className={`text-xs truncate ${active ? "text-indigo-200" : "text-neutral-500"}`}
+                                >
                                   {emp.employee_id || "No ID"}
                                 </span>
                               </div>
-                              {active && <Check className="size-4 text-white shrink-0 ml-2" />}
+                              {active && (
+                                <Check className="size-4 text-white shrink-0 ml-2" />
+                              )}
                             </button>
                           );
                         })}
@@ -349,15 +419,21 @@ export default function SharedGoalsPage() {
               <div className="flex flex-col gap-4">
                 <div className="bg-white rounded-2xl border border-neutral-200/60 shadow-sm flex flex-col h-full overflow-hidden">
                   <div className="p-6 border-b border-neutral-100 bg-neutral-50/50">
-                    <h3 className="font-semibold text-lg text-neutral-900">Active Shared Goals</h3>
-                    <p className="text-sm text-neutral-500 mt-1">Currently assigned KPIs and their statuses</p>
+                    <h3 className="font-semibold text-lg text-neutral-900">
+                      Active Shared Goals
+                    </h3>
+                    <p className="text-sm text-neutral-500 mt-1">
+                      Currently assigned KPIs and their statuses
+                    </p>
                   </div>
-                  
+
                   <div className="p-4 flex-1 overflow-y-auto flex flex-col gap-3 custom-scrollbar">
                     {displayedSharedGoals.length === 0 ? (
                       <div className="text-center py-10 px-4 rounded-xl border border-dashed border-neutral-200 bg-neutral-50 flex flex-col items-center">
                         <Target className="size-8 text-neutral-300 mb-2" />
-                        <h3 className="font-medium text-neutral-900">No active goals</h3>
+                        <h3 className="font-medium text-neutral-900">
+                          No active goals
+                        </h3>
                         <p className="text-neutral-500 text-sm mt-1 text-center">
                           Shared goals you create will appear here.
                         </p>
@@ -367,12 +443,20 @@ export default function SharedGoalsPage() {
                         // Calculate Statuses safely
                         const assignments = g.shared_goal_assignments || [];
                         const totalCount = assignments.length;
-                        const submittedCount = assignments.filter((a: any) => a.status === 'submitted').length;
-                        const approvedCount = assignments.filter((a: any) => a.status === 'approved').length;
-                        const draftedCount = totalCount - submittedCount - approvedCount; // Not submitted yet
+                        const submittedCount = assignments.filter(
+                          (a: any) => a.status === "submitted",
+                        ).length;
+                        const approvedCount = assignments.filter(
+                          (a: any) => a.status === "approved",
+                        ).length;
+                        const draftedCount =
+                          totalCount - submittedCount - approvedCount; // Not submitted yet
 
                         return (
-                          <div key={g.id} className="rounded-xl border border-neutral-200 bg-white p-4 hover:shadow-sm transition-shadow">
+                          <div
+                            key={g.id}
+                            className="rounded-xl border border-neutral-200 bg-white p-4 hover:shadow-sm transition-shadow"
+                          >
                             <div className="flex justify-between items-start gap-2 mb-2">
                               <h4 className="font-semibold text-neutral-900 text-sm leading-tight">
                                 {g.title}
@@ -381,35 +465,50 @@ export default function SharedGoalsPage() {
                                 {g.assignment_type}
                               </span>
                             </div>
-                            
+
                             <p className="text-xs text-neutral-500 mb-4 line-clamp-2">
                               {g.description || "No description provided."}
                             </p>
 
                             {/* Status Indicators */}
                             <div className="flex flex-wrap gap-2 mb-4">
-                              <Badge variant="outline" className="bg-neutral-50 text-neutral-600 border-neutral-200 font-medium text-[10px]">
+                              <Badge
+                                variant="outline"
+                                className="bg-neutral-50 text-neutral-600 border-neutral-200 font-medium text-[10px]"
+                              >
                                 {totalCount} Assigned
                               </Badge>
                               {submittedCount > 0 && (
-                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-medium text-[10px]">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-amber-50 text-amber-700 border-amber-200 font-medium text-[10px]"
+                                >
                                   {submittedCount} Submitted
                                 </Badge>
                               )}
                               {approvedCount > 0 && (
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium text-[10px]">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium text-[10px]"
+                                >
                                   {approvedCount} Approved
                                 </Badge>
                               )}
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-2 border-t border-neutral-100 pt-3 mt-auto">
                               <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-semibold text-neutral-400">Target</span>
-                                <span className="text-sm font-medium text-neutral-800">{g.target_value} ({g.uom_type})</span>
+                                <span className="text-[10px] uppercase font-semibold text-neutral-400">
+                                  Target
+                                </span>
+                                <span className="text-sm font-medium text-neutral-800">
+                                  {g.target_value} ({g.uom_type})
+                                </span>
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-[10px] uppercase font-semibold text-neutral-400">Created</span>
+                                <span className="text-[10px] uppercase font-semibold text-neutral-400">
+                                  Created
+                                </span>
                                 <span className="text-sm font-medium text-neutral-800">
                                   {g.created_at?.split("T")[0] || "N/A"}
                                 </span>
@@ -422,13 +521,14 @@ export default function SharedGoalsPage() {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         </main>
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
@@ -439,7 +539,9 @@ export default function SharedGoalsPage() {
           background-color: #E5E7EB;
           border-radius: 20px;
         }
-      `}} />
+      `,
+        }}
+      />
     </div>
   );
 }

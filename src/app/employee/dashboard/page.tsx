@@ -19,16 +19,25 @@ import {
   PieChart,
   Clock,
   LogOut,
-  Plus
+  Plus,
 } from "lucide-react";
 
 import { getGoals, submitGoalSheet } from "@/services/goalservice";
-import { getEmployeeSharedGoals, getCurrentUserProfile } from "@/services/sharedgoalservice";
+import {
+  getEmployeeSharedGoals,
+  getCurrentUserProfile,
+} from "@/services/sharedgoalservice";
 import { getNotifications } from "@/services/notificationservice";
 import { getOrCreateGoalSheet } from "@/services/goal-sheetservice"; // Imported to handle creation
 
 // Assuming you have shadcn UI select components. If not, use standard <select> tags.
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Goal {
   id: string | number;
@@ -77,7 +86,7 @@ export default function EmployeeDashboard() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [mobile, setMobile] = useState(false);
   const [currentPhase, setCurrentPhase] = useState("Loading Phase...");
-  
+
   // New States for filtering and sheet management
   const [selectedQuarter, setSelectedQuarter] = useState("Q1");
   const [hasGoalSheet, setHasGoalSheet] = useState(true);
@@ -117,13 +126,28 @@ export default function EmployeeDashboard() {
             return now >= new Date(start) && now <= new Date(end);
           };
 
-          if (isWithin(activeCycle.goal_setting_start, activeCycle.goal_setting_end)) activePhaseName = "Goal Setting Phase";
-          else if (isWithin(activeCycle.q1_start, activeCycle.q1_end)) { activePhaseName = "Q1 Active"; defaultQuarter = "Q1"; }
-          else if (isWithin(activeCycle.q2_start, activeCycle.q2_end)) { activePhaseName = "Q2 Active"; defaultQuarter = "Q2"; }
-          else if (isWithin(activeCycle.q3_start, activeCycle.q3_end)) { activePhaseName = "Q3 Active"; defaultQuarter = "Q3"; }
-          else if (isWithin(activeCycle.q4_start, activeCycle.q4_end)) { activePhaseName = "Q4 Active"; defaultQuarter = "Q4"; }
+          if (
+            isWithin(
+              activeCycle.goal_setting_start,
+              activeCycle.goal_setting_end,
+            )
+          )
+            activePhaseName = "Goal Setting Phase";
+          else if (isWithin(activeCycle.q1_start, activeCycle.q1_end)) {
+            activePhaseName = "Q1 Active";
+            defaultQuarter = "Q1";
+          } else if (isWithin(activeCycle.q2_start, activeCycle.q2_end)) {
+            activePhaseName = "Q2 Active";
+            defaultQuarter = "Q2";
+          } else if (isWithin(activeCycle.q3_start, activeCycle.q3_end)) {
+            activePhaseName = "Q3 Active";
+            defaultQuarter = "Q3";
+          } else if (isWithin(activeCycle.q4_start, activeCycle.q4_end)) {
+            activePhaseName = "Q4 Active";
+            defaultQuarter = "Q4";
+          }
         }
-        
+
         setSelectedQuarter(defaultQuarter);
         return activePhaseName;
       };
@@ -132,7 +156,7 @@ export default function EmployeeDashboard() {
         getGoals(),
         getEmployeeSharedGoals(),
         getCurrentUserProfile(),
-        getNotifications().catch(() => ({ data: [] })), 
+        getNotifications().catch(() => ({ data: [] })),
         fetchPhase(),
       ]);
 
@@ -144,16 +168,21 @@ export default function EmployeeDashboard() {
       }
 
       const data = goalRes?.data || [];
-      
+
       setGoals(data);
       setSharedGoals(shared?.data || []);
       setNotifications(notif?.data || []);
       setProfile(user);
       setCurrentPhase(phase);
 
-      const totalWeight = data.reduce((a, b) => a + Number(b.weightage || 0), 0);
+      const totalWeight = data.reduce(
+        (a, b) => a + Number(b.weightage || 0),
+        0,
+      );
       const avg = data.length
-        ? Math.round(data.reduce((a, b) => a + Number(b.progress || 0), 0) / data.length)
+        ? Math.round(
+            data.reduce((a, b) => a + Number(b.progress || 0), 0) / data.length,
+          )
         : 0;
 
       setStats({
@@ -162,7 +191,6 @@ export default function EmployeeDashboard() {
         weight: totalWeight,
         status: goalRes?.submissionStatus || "draft",
       });
-
     } catch (err) {
       console.error("Dashboard Load Error:", err);
     } finally {
@@ -170,15 +198,15 @@ export default function EmployeeDashboard() {
     }
   }
 
- async function handleCreateSheet() {
+  async function handleCreateSheet() {
     // Pass 'selectedQuarter' so the backend knows which quarter to create the sheet for
-    const res = await getOrCreateGoalSheet(selectedQuarter); 
+    const res = await getOrCreateGoalSheet(selectedQuarter);
     if (res?.error) {
       alert(res.error);
       return;
     }
     alert(`Goal Sheet created successfully for ${selectedQuarter}.`);
-    load(); 
+    load();
   }
 
   async function submit() {
@@ -218,20 +246,33 @@ export default function EmployeeDashboard() {
       >
         <div className="p-6">
           <h1 className="text-white font-serif text-2xl font-bold tracking-tight">
-            GoalTrack
+            OMP
           </h1>
         </div>
 
         <nav className="space-y-1.5 px-4 flex-1 flex flex-col">
-          <Item icon={LayoutDashboard} href="/employee/dashboard" label="Dashboard" active />
+          <Item
+            icon={LayoutDashboard}
+            href="/employee/dashboard"
+            label="Dashboard"
+            active
+          />
           <Item icon={ListChecks} href="/employee/goals" label="Goals" />
-          <Item icon={CalendarCheck} href="/employee/checkins" label="Check-ins" />
+          <Item
+            icon={CalendarCheck}
+            href="/employee/checkins"
+            label="Check-ins"
+          />
           <Item icon={BarChart2} href="/employee/report" label="Reports" />
-          <Item icon={ListChecks} href="/employee/guidelines" label="Guideline" />
-          
+          <Item
+            icon={ListChecks}
+            href="/employee/guidelines"
+            label="Guideline"
+          />
+
           <div className="mt-auto mb-6">
-            <button 
-              onClick={handleSignOut} 
+            <button
+              onClick={handleSignOut}
               className="flex w-full items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors text-rose-400 hover:bg-rose-500/10 text-left"
             >
               <LogOut size={18} /> Sign Out
@@ -249,11 +290,16 @@ export default function EmployeeDashboard() {
             >
               {mobile ? <X size={24} /> : <Menu size={24} />}
             </button>
-            <div className="font-semibold text-slate-800 text-lg">Dashboard</div>
+            <div className="font-semibold text-slate-800 text-lg">
+              Dashboard
+            </div>
           </div>
 
           <div className="flex items-center gap-5">
-            <Link href="/notifications" className="relative text-slate-400 hover:text-indigo-600 transition-colors">
+            <Link
+              href="/notifications"
+              className="relative text-slate-400 hover:text-indigo-600 transition-colors"
+            >
               <Bell size={20} />
               {notifications.length > 0 && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
@@ -283,7 +329,7 @@ export default function EmployeeDashboard() {
                   Here is an overview of your current goal progress.
                 </p>
               </div>
-              
+
               {/* Dynamic Phase Indicator */}
               <div className="inline-flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 text-indigo-100 px-4 py-2 rounded-lg text-sm font-medium w-fit">
                 <Clock size={16} />
@@ -294,19 +340,22 @@ export default function EmployeeDashboard() {
 
           {/* Create Goal Sheet Prompt if missing */}
           {!hasGoalSheet && (
-             <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-8 mb-6 text-center flex flex-col items-center justify-center shadow-sm">
-                <Target size={40} className="text-indigo-400 mb-4" />
-                <h3 className="text-lg font-bold text-slate-800 mb-2">No Goal Sheet Found</h3>
-                <p className="text-slate-600 mb-6 max-w-md text-sm">
-                  You have not initiated a goal sheet for the current active cycle. Create one to start assigning your quarterly goals.
-                </p>
-                <button 
-                  onClick={handleCreateSheet}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 shadow-sm shadow-indigo-600/20"
-                >
-                  <Plus size={18} /> Create Cycle Goal Sheet
-                </button>
-             </div>
+            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-8 mb-6 text-center flex flex-col items-center justify-center shadow-sm">
+              <Target size={40} className="text-indigo-400 mb-4" />
+              <h3 className="text-lg font-bold text-slate-800 mb-2">
+                No Goal Sheet Found
+              </h3>
+              <p className="text-slate-600 mb-6 max-w-md text-sm">
+                You have not initiated a goal sheet for the current active
+                cycle. Create one to start assigning your quarterly goals.
+              </p>
+              <button
+                onClick={handleCreateSheet}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 shadow-sm shadow-indigo-600/20"
+              >
+                <Plus size={18} /> Create Cycle Goal Sheet
+              </button>
+            </div>
           )}
 
           {hasGoalSheet && (
@@ -314,9 +363,21 @@ export default function EmployeeDashboard() {
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <Stat title="Total Goals" value={stats.total} icon={Target} />
-                <Stat title="Avg. Progress" value={`${stats.progress}%`} icon={TrendingUp} />
-                <Stat title="Total Weight" value={`${stats.weight}%`} icon={PieChart} />
-                <Stat title="Sheet Status" value={stats.status} icon={FileText} />
+                <Stat
+                  title="Avg. Progress"
+                  value={`${stats.progress}%`}
+                  icon={TrendingUp}
+                />
+                <Stat
+                  title="Total Weight"
+                  value={`${stats.weight}%`}
+                  icon={PieChart}
+                />
+                <Stat
+                  title="Sheet Status"
+                  value={stats.status}
+                  icon={FileText}
+                />
               </div>
 
               <div className="flex gap-3 mb-6">
@@ -341,10 +402,15 @@ export default function EmployeeDashboard() {
                 {/* My Goals List (Filtered by Quarter) */}
                 <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-serif font-bold text-slate-800 text-lg">Current Goals</h3>
-                    
+                    <h3 className="font-serif font-bold text-slate-800 text-lg">
+                      Current Goals
+                    </h3>
+
                     {/* Quarter Filter Dropdown */}
-                    <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
+                    <Select
+                      value={selectedQuarter}
+                      onValueChange={setSelectedQuarter}
+                    >
                       <SelectTrigger className="w-[120px] bg-white text-sm font-medium">
                         <SelectValue placeholder="Quarter" />
                       </SelectTrigger>
@@ -366,12 +432,17 @@ export default function EmployeeDashboard() {
                       filteredGoals.map((g, i) => (
                         <div key={g.id} className="flex flex-col gap-2">
                           <div className="flex justify-between items-start">
-                            <div className="font-medium text-slate-800">{g.title}</div>
+                            <div className="font-medium text-slate-800">
+                              {g.title}
+                            </div>
                             <div className="text-sm font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded">
                               Wt: {g.weightage}%
                             </div>
                           </div>
-                          <Progress value={Number(g.progress || 0)} color={COLORS[i % COLORS.length]} />
+                          <Progress
+                            value={Number(g.progress || 0)}
+                            color={COLORS[i % COLORS.length]}
+                          />
                         </div>
                       ))
                     )}
@@ -380,7 +451,9 @@ export default function EmployeeDashboard() {
 
                 {/* Shared Goals */}
                 <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
-                  <h3 className="font-serif font-bold text-slate-800 text-lg mb-6">Shared Goals</h3>
+                  <h3 className="font-serif font-bold text-slate-800 text-lg mb-6">
+                    Shared Goals
+                  </h3>
                   <div className="space-y-4">
                     {sharedGoals.length === 0 ? (
                       <div className="text-slate-400 text-sm text-center py-6">
@@ -388,13 +461,23 @@ export default function EmployeeDashboard() {
                       </div>
                     ) : (
                       sharedGoals.map((g) => (
-                        <div key={g.id} className="border border-slate-100 bg-slate-50/50 rounded-xl p-4 transition-colors hover:border-indigo-100">
+                        <div
+                          key={g.id}
+                          className="border border-slate-100 bg-slate-50/50 rounded-xl p-4 transition-colors hover:border-indigo-100"
+                        >
                           <div className="font-medium text-slate-800 text-sm mb-1 line-clamp-2">
                             {g.shared_goals?.title}
                           </div>
                           <div className="text-xs text-slate-500 font-medium flex justify-between">
-                            <span>Target: <span className="text-slate-700">{g.shared_goals?.target_value}</span></span>
-                            <span className="bg-indigo-100 text-indigo-700 px-1.5 rounded">{g.shared_goals?.quarter || 'Q1'}</span>
+                            <span>
+                              Target:{" "}
+                              <span className="text-slate-700">
+                                {g.shared_goals?.target_value}
+                              </span>
+                            </span>
+                            <span className="bg-indigo-100 text-indigo-700 px-1.5 rounded">
+                              {g.shared_goals?.quarter || "Q1"}
+                            </span>
                           </div>
                         </div>
                       ))
@@ -415,8 +498,8 @@ function Item({ icon: Icon, href, label, active = false }: any) {
     <Link
       href={href}
       className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${
-        active 
-          ? "bg-indigo-600/10 text-indigo-400" 
+        active
+          ? "bg-indigo-600/10 text-indigo-400"
           : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
       }`}
     >
