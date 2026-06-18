@@ -32,7 +32,7 @@ export default function EmployeeGuidelinesPage() {
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-serif font-bold tracking-tight text-white">
-                Employee OMP Guidelines
+                Employee Guidelines
               </h1>
               <p className="text-slate-400 mt-2 max-w-2xl text-sm md:text-base">
                 Everything you need to know about setting, managing, and
