@@ -170,14 +170,15 @@ export default function EmployeeDashboard() {
     }
   }
 
-  async function handleCreateSheet() {
-    const res = await getOrCreateGoalSheet();
+ async function handleCreateSheet() {
+    // Pass 'selectedQuarter' so the backend knows which quarter to create the sheet for
+    const res = await getOrCreateGoalSheet(selectedQuarter); 
     if (res?.error) {
       alert(res.error);
       return;
     }
-    alert("Goal Sheet created successfully for this cycle.");
-    load(); // Reload dashboard to fetch the new sheet
+    alert(`Goal Sheet created successfully for ${selectedQuarter}.`);
+    load(); 
   }
 
   async function submit() {
@@ -297,7 +298,7 @@ export default function EmployeeDashboard() {
                 <Target size={40} className="text-indigo-400 mb-4" />
                 <h3 className="text-lg font-bold text-slate-800 mb-2">No Goal Sheet Found</h3>
                 <p className="text-slate-600 mb-6 max-w-md text-sm">
-                  You haven't initiated a goal sheet for the current active cycle. Create one to start assigning your quarterly goals.
+                  You have not initiated a goal sheet for the current active cycle. Create one to start assigning your quarterly goals.
                 </p>
                 <button 
                   onClick={handleCreateSheet}
