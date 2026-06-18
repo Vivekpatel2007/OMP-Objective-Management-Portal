@@ -54,11 +54,11 @@ export default function CycleGovernance() {
   async function loadActiveCycle() {
     setLoading(true);
     try {
-      // Fetch the currently active cycle
+      // Fetch the currently active cycle using 'is_active', not 'status'
       const { data, error } = await supabase
         .from("goal_cycles")
         .select("*")
-        .eq("status", "active")
+        .eq("is_active", true) 
         .maybeSingle();
 
       if (data) {

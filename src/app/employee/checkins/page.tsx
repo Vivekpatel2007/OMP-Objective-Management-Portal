@@ -165,6 +165,7 @@ export default function EmployeeCheckinPage() {
           <Nav icon={ListChecks} label="My Goal Sheet" href="/employee/goals" />
           <Nav active icon={CalendarCheck} label="Check-ins" href="/employee/checkins" />
           <Nav icon={BarChart3} label="Reports" href="/employee/report" />
+          <Nav icon={ListChecks} label="Guidelines" href="/employee/guidelines" />
           <div className="pt-4 mt-4 border-t border-white/10">
             <button onClick={handleSignOut} className="flex w-full gap-3 px-4 py-3 rounded-xl transition text-white/70 hover:bg-rose-500/10 hover:text-rose-500 text-left">
               <LogOut size={18} /> Sign Out

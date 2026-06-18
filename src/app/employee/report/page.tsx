@@ -206,6 +206,8 @@ export default function EmployeeReports() {
           <Item icon={ListChecks} href="/employee/goals" label="Goals" />
           <Item icon={CalendarCheck} href="/employee/checkins" label="Check-ins" />
           <Item icon={BarChart2} href="/employee/report" label="Reports" active />
+          
+          <Item icon={ListChecks} href="/employee/guidelines" label="Guidelines" />
           <div className="pt-4 mt-4 border-t border-white/10">
             <button onClick={handleSignOut} className="flex w-full gap-3 px-4 py-3 rounded-xl transition text-white/70 hover:bg-rose-500/10 hover:text-rose-500 text-left">
               <LogOut size={18} /> Sign Out

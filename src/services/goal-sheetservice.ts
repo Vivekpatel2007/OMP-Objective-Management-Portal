@@ -1,60 +1,49 @@
-// src/services/goal-sheet.service.ts
-
-"use client";
-
+// src/services/goal-sheetservice.ts
 import { createClient } from "@/lib/supabase/client";
 
-const supabase = createClient();
-export async function getOrCreateGoalSheet() {
+export async function getOrCreateGoalSheet(quarter: string) { 
   try {
     const supabase = createClient();
 
     // Current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return {
-        error: "User not authenticated",
-      };
+      return { error: "User not authenticated" };
     }
 
     // Active cycle
     const { data: activeCycle } = await supabase
-  .from("goal_cycles")
-  .select("*")
-  .eq("is_active", true) 
-  .single();
+      .from("goal_cycles")
+      .select("*")
+      .eq("is_active", true) 
+      .single();
 
     if (!activeCycle) {
-      return {
-        error: "No active cycle found",
-      };
+      return { error: "No active cycle found" };
     }
 
-    // Existing sheet for current cycle
-    const { data: existingGoalSheet } =
-      await supabase
+    // Existing sheet for current cycle AND quarter
+    const { data: existingGoalSheet } = await supabase
         .from("goal_sheets")
         .select("*")
         .eq("employee_id", user.id)
         .eq("cycle_id", activeCycle.id)
+        .eq("quarter", quarter) // <-- Ensure uniqueness per quarter
         .single();
 
     // Return existing
     if (existingGoalSheet) {
-      return {
-        data: existingGoalSheet,
-      };
+      return { data: existingGoalSheet };
     }
 
-    // Create new
+    // Create new sheet specifically for this quarter
     const { data, error } = await supabase
       .from("goal_sheets")
       .insert({
         employee_id: user.id,
         cycle_id: activeCycle.id,
+        quarter: quarter, // <-- Save the quarter
         submission_status: "draft",
         locked: false,
       })
@@ -64,10 +53,7 @@ export async function getOrCreateGoalSheet() {
     return { data, error };
   } catch (err) {
     console.log(err);
-
-    return {
-      error: "Something went wrong",
-    };
+    return { error: "Something went wrong" };
   }
 }
 export async function validateGoalSheet(

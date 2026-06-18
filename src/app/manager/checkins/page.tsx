@@ -157,10 +157,9 @@ export default function ManagerCheckinsPage() {
         </div>
         <nav className="space-y-2 px-3 flex-1 mt-4">
           <Item icon={LayoutDashboard} href="/manager/dashboard" label="Dashboard" />
-          <Item icon={CheckCircle} href="/manager/approvals" label="Approvals" />
+          <Item icon={CheckCircle} href="/manager/approvals/id" label="Approvals" />
           <Item icon={ClipboardCheck} href="/manager/checkins" label="Check-ins" active />
           <Item icon={Users} href="/manager/shared-goals" label="Shared Goals" />
-          <Item icon={BarChart3} href="/manager/reports" label="Team Reports" />
           <div className="pt-4 mt-4 border-t border-white/10">
             <button onClick={handleSignOut} className="flex w-full gap-3 px-4 py-3 rounded-xl transition text-white/70 hover:bg-rose-500/10 hover:text-rose-500 text-left items-center text-sm">
               <LogOut size={18} /> Sign Out

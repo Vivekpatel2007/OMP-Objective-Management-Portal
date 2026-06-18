@@ -132,61 +132,7 @@ export async function createGoal(goalData: any) {
   }
 }
 
-export async function getGoals() {
-  try {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
 
-    if (userError || !user) {
-      return {
-        data: [],
-        error: "User not authenticated",
-        locked: false,
-        submissionStatus: "draft",
-      };
-    }
-
-    // Fetch goal sheet
-    const { data: goalSheet, error: goalSheetError } = await supabase
-      .from("goal_sheets")
-      .select("*")
-      .eq("employee_id", user.id)
-      .single();
-
-    if (goalSheetError || !goalSheet) {
-      return {
-        data: [],
-        error: "Goal sheet not found",
-        locked: false,
-        submissionStatus: "draft",
-      };
-    }
-
-    // Fetch goals
-    const { data, error } = await supabase
-      .from("goals")
-      .select("*")
-      .eq("goal_sheet_id", goalSheet.id)
-      .order("created_at", { ascending: true }); // Keep goals in consistent order
-
-    return {
-      data: data || [],
-      error,
-      locked: goalSheet.locked || false,
-      submissionStatus: goalSheet.submission_status || "draft",
-    };
-  } catch (err) {
-    console.log(err);
-    return {
-      data: [],
-      error: "Something went wrong",
-      locked: false,
-      submissionStatus: "draft",
-    };
-  }
-}
 
 export async function updateGoal(goalId: string, goalData: any) {
   try {
@@ -244,32 +190,103 @@ export async function updateGoalProgress(
   }
 }
 
+// src/services/goalservice.ts
+
+export async function getGoals() {
+  try {
+    const supabase = createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return { data: [], error: "User not authenticated", locked: false, submissionStatus: "draft" };
+    }
+
+    // 1. Figure out the Active Quarter dynamically
+    const { data: activeCycle } = await supabase
+      .from("goal_cycles")
+      .select("*")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    let activeQuarter = "Q1";
+    if (activeCycle) {
+      const now = new Date();
+      const isWithin = (start?: string, end?: string) => {
+        if (!start || !end) return false;
+        return now >= new Date(start) && now <= new Date(end);
+      };
+
+      if (isWithin(activeCycle.q2_start, activeCycle.q2_end)) activeQuarter = "Q2";
+      else if (isWithin(activeCycle.q3_start, activeCycle.q3_end)) activeQuarter = "Q3";
+      else if (isWithin(activeCycle.q4_start, activeCycle.q4_end)) activeQuarter = "Q4";
+    }
+
+    // 2. Fetch the goal sheet strictly for THIS quarter
+    const { data: goalSheet, error: goalSheetError } = await supabase
+      .from("goal_sheets")
+      .select("*")
+      .eq("employee_id", user.id)
+      .eq("quarter", activeQuarter) // <-- Fetch only the active quarter's sheet
+      .single();
+
+    if (goalSheetError || !goalSheet) {
+      return { data: [], error: "Goal sheet not found", locked: false, submissionStatus: "draft" };
+    }
+
+    // 3. Fetch goals for this specific sheet
+    const { data, error } = await supabase
+      .from("goals")
+      .select("*")
+      .eq("goal_sheet_id", goalSheet.id)
+      .order("created_at", { ascending: true });
+
+    return {
+      data: data || [],
+      error,
+      locked: goalSheet.locked || false,
+      submissionStatus: goalSheet.submission_status || "draft",
+    };
+  } catch (err) {
+    console.log(err);
+    return { data: [], error: "Something went wrong", locked: false, submissionStatus: "draft" };
+  }
+}
+
 export async function submitGoalSheet() {
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) return { error: "Login required" };
 
+    // 1. Figure out the Active Quarter
+    const { data: activeCycle } = await supabase.from("goal_cycles").select("*").eq("is_active", true).maybeSingle();
+    let activeQuarter = "Q1";
+    if (activeCycle) {
+      const now = new Date();
+      const isWithin = (start?: string, end?: string) => start && end && now >= new Date(start) && now <= new Date(end);
+      if (isWithin(activeCycle.q2_start, activeCycle.q2_end)) activeQuarter = "Q2";
+      else if (isWithin(activeCycle.q3_start, activeCycle.q3_end)) activeQuarter = "Q3";
+      else if (isWithin(activeCycle.q4_start, activeCycle.q4_end)) activeQuarter = "Q4";
+    }
+
+    // 2. Fetch the sheet for THIS quarter
     const { data: sheet } = await supabase
       .from("goal_sheets")
       .select("*")
       .eq("employee_id", user.id)
+      .eq("quarter", activeQuarter)
       .single();
 
+    if (!sheet) return { error: "Goal sheet not found" };
     if (sheet.locked) return { error: "Goal sheet locked" };
 
     const validation = await validateGoalSheet(sheet.id);
-
     if (!validation.valid) return { error: validation.error };
 
     return supabase
       .from("goal_sheets")
-      .update({
-        submission_status: "submitted",
-        locked: true,
-      })
+      .update({ submission_status: "submitted", locked: true })
       .eq("id", sheet.id);
   } catch {
     return { error: "Submit failed" };
